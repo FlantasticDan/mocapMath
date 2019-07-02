@@ -4,5 +4,5 @@
         "--disable=F0401",
         "--disable=C0103"
     ],
-    "python.linting.enabled": true
+    "python.linting.enabled": true,
 }
