@@ -4,6 +4,7 @@
 
 # Configure Workspace
 import bpy
+import math
 D = bpy.data
 C = bpy.context
 
@@ -20,6 +21,12 @@ bpy.ops.clip.constraint_to_fcurve()
 
 # identify scene in blender data blocks
 SCENE = C.scene
+CLIP = D.movieclips[0]
+
+# recalculate values blender records incorrectly
+ASPECT_RATIO = CLIP.size[1] / CLIP.size[0]
+SENSOR_Y = CAMERA.sensor_width * ASPECT_RATIO
+ANGLE_Y = 2 * (math.atan(SENSOR_Y / (2 * CAMERA.lens)))
 
 # create export file
 filepath = C.blend_data.filepath
@@ -31,8 +38,9 @@ for x in filepath:
 EXPORT = open(filePath[:-1] + "_CAMERAexport.txt", "x")
 
 # write header to export file
-EXPORT.write("CAMERA DATA EXPORT for {}\n\n".format(D.movieclips[0].name))
+EXPORT.write("CAMERA DATA EXPORT for {}\n\n".format(CLIP.name))
 EXPORT.write("RANGE {} to {}\n\n".format(SCENE.frame_start, SCENE.frame_end))
-EXPORT.write("SENSOR(mm) {} x {}\n\n".format(CAMERA.sensor_width, CAMERA.sensor_height))
+EXPORT.write("RESOLUTION {} x {}\n\n".format(CLIP.size[0], CLIP.size[1]))
+EXPORT.write("SENSOR(mm) {} x {}\n\n".format(CAMERA.sensor_width, SENSOR_Y))
 EXPORT.write("LENS(mm) {}\n\n".format(CAMERA.lens))
-EXPORT.write("ANGLE OF VIEW(radians) {} x {}\n\n\n".format(CAMERA.angle_x, CAMERA.angle_y))
+EXPORT.write("ANGLE OF VIEW(radians) {} x {}\n\n\n".format(CAMERA.angle_x, ANGLE_Y))
