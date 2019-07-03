@@ -44,3 +44,18 @@ EXPORT.write("RESOLUTION {} x {}\n\n".format(CLIP.size[0], CLIP.size[1]))
 EXPORT.write("SENSOR(mm) {} x {}\n\n".format(CAMERA.sensor_width, SENSOR_Y))
 EXPORT.write("LENS(mm) {}\n\n".format(CAMERA.lens))
 EXPORT.write("ANGLE OF VIEW(radians) {} x {}\n\n\n".format(CAMERA.angle_x, ANGLE_Y))
+
+# keyframe export
+frame = SCENE.frame_start
+while frame <= SCENE.frame_end:
+    SCENE.frame_set(frame)
+    EXPORT.write("{:05d} ".format(frame))
+    EXPORT.write("{:6f} ".format(CAMERA_OBJ.location[0])) # position X
+    EXPORT.write("{:6f} ".format(CAMERA_OBJ.location[1])) # position Y
+    EXPORT.write("{:6f} ".format(CAMERA_OBJ.location[2])) # position Z
+    EXPORT.write("{:6f} ".format(CAMERA_OBJ.rotation_euler[0])) # rotation X (radians)
+    EXPORT.write("{:6f} ".format(CAMERA_OBJ.rotation_euler[1])) # rotation Y (radians)
+    EXPORT.write("{:6f}\n".format(CAMERA_OBJ.rotation_euler[2])) # rotation Z (radians)
+    frame = frame + 1
+
+EXPORT.close() # close export file
