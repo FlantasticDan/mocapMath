@@ -24,6 +24,8 @@ EXPORT = open(filePath[:-1] + "_TRACKERexport.txt", "x")
 # write header to export file
 EXPORT.write("TRACKER DATA EXPORT for {}\n\n".format(CLIP.name))
 EXPORT.write("RANGE {} to {}\n\n".format(SCENE.frame_start, SCENE.frame_end))
+EXPORT.write("RESOLUTION {} x {}\n\n".format(CLIP.size[0], CLIP.size[1]))
+EXPORT.write("NUMBER OF TRACKS {}\n\n".format(len(TRACKER)))
 
 # export tracker coordinates
 cTrack = 0
