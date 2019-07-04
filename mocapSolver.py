@@ -16,8 +16,6 @@ C1_TRACK = open(filedialog.askopenfilename(title="Camera 1 | TRACKER DATA"))
 C2_CAM = open(filedialog.askopenfilename(title="Camera 2 | CAMERA DATA"))
 C2_TRACK = open(filedialog.askopenfilename(title="Camera 2 | TRACKER DATA"))
 
-DATA_FILES = [C1_CAM, C1_TRACK, C2_CAM, C2_TRACK]
-
 # define headers
 CLIP = []
 FRAME_RANGE = []
@@ -37,24 +35,26 @@ def cameraRead(CAMERA_FILE):
         if i == 0:
             CLIP.append(line[23:])
         elif i == 2:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             FRAME_RANGE.append((split[1], split[3]))
         elif i == 4:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             RESOLUTION.append((split[1], split[3]))
         elif i == 6:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             SENSOR.append((split[1], split[3]))
         elif i == 8:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             LENS.append(split[1])
         elif i == 10:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             AOV.append((split[1], split[3]))
         elif i > 12:
-            split = line.split(" ")
-            cameraTrack[int(split[0])] = (split[1], split[2], split[3], split[4], split[5], split[6])
+            split = line[:-1].split(" ")
+            cameraTrack[int(split[0])] = (split[1], split[2], split[3],
+                                          split[4], split[5], split[6])
 
+    CAMERA_FILE.close()
     return cameraTrack
 
 def trackerRead(TRACKER_FILE):
@@ -65,22 +65,31 @@ def trackerRead(TRACKER_FILE):
 
     for i, line in enumerate(TRACKER_FILE):
         if i == 0:
-            CLIP.append(line[24:])
+            CLIP.append(line[24:-1])
         elif i == 2:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             FRAME_RANGE.append((split[1], split[3]))
         elif i == 4:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             RESOLUTION.append((split[1], split[3]))
         elif i == 6:
-            split = line.split(" ")
+            split = line[:-1].split(" ")
             TRACK_NUM.append(split[1])
         elif i > 8:
-            split = line.split(" ")
-            if split[0] is "#####":
+            split = line[:-1].split(" ")
+            if split[0] == "#####":
                 currentMarker = split[1]
                 trackTrack[currentMarker] = []
             else:
-                trackTrack[currentMarker][int(split[0])] = (split[1], split[2])
+                try:
+                    trackTrack[currentMarker].append((int(split[0]), split[1], split[2]))
+                except ValueError:
+                    pass
 
+    TRACKER_FILE.close()
     return trackTrack
+
+A_CAM = cameraRead(C1_CAM)
+B_CAM = cameraRead(C2_CAM)
+A_TRACK = trackerRead(C1_TRACK)
+B_TRACK = trackerRead(C2_TRACK)
