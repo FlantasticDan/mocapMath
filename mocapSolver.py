@@ -24,7 +24,8 @@ FRAME_RANGE = []
 RESOLUTION = []
 SENSOR = []
 LENS = []
-AoV = []
+AOV = []
+TRACK_NUM = []
 
 def cameraRead(CAMERA_FILE):
 
@@ -49,9 +50,37 @@ def cameraRead(CAMERA_FILE):
             LENS.append(split[1])
         elif i == 10:
             split = line.split(" ")
-            AoV.append((split[1], split[3]))
+            AOV.append((split[1], split[3]))
         elif i > 12:
             split = line.split(" ")
             cameraTrack[int(split[0])] = (split[1], split[2], split[3], split[4], split[5], split[6])
 
     return cameraTrack
+
+def trackerRead(TRACKER_FILE):
+
+    '''Reads blender tracker data export files.'''
+
+    trackTrack = {}
+
+    for i, line in enumerate(TRACKER_FILE):
+        if i == 0:
+            CLIP.append(line[24:])
+        elif i == 2:
+            split = line.split(" ")
+            FRAME_RANGE.append((split[1], split[3]))
+        elif i == 4:
+            split = line.split(" ")
+            RESOLUTION.append((split[1], split[3]))
+        elif i == 6:
+            split = line.split(" ")
+            TRACK_NUM.append(split[1])
+        elif i > 8:
+            split = line.split(" ")
+            if split[0] is "#####":
+                currentMarker = split[1]
+                trackTrack[currentMarker] = []
+            else:
+                trackTrack[currentMarker][int(split[0])] = (split[1], split[2])
+
+    return trackTrack
