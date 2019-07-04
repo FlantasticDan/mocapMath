@@ -56,7 +56,7 @@ def cameraRead(CAMERA_FILE):
         elif i == 10:
             split = line[:-1].split(" ")
             #AOV.append((split[1], split[3]))
-            cameraTrack['aov'] = (split[1], split[3])
+            cameraTrack['aov'] = (split[3], split[5])
         elif i > 12:
             split = line[:-1].split(" ")
             cameraTrack[int(split[0])] = (split[1], split[2], split[3],
@@ -116,11 +116,11 @@ def angleOfViewCalc(cam, aov, track):
     trackAOV = []
     finalRotation = []
 
-    for i in range(0, 1):
-        trackAOV[i] = ((track[i] - 0.5) * aov[i])
-        finalRotation[i] = trackAOV[i] + cam[i]
+    for i in range(0, 2):
+        trackAOV.append((float(track[i]) - 0.5) * float(aov[i]))
+        finalRotation.append(float(trackAOV[i]) + float(cam[i]))
 
-    finalRotation[2] = cam[2]
+    finalRotation.append(float(cam[2]))
 
     return finalRotation
 
@@ -146,8 +146,8 @@ def pointsOnLine(cameraTransform, track, frame, marker):
 
     # calculate arbitary second point on projected line
     newPoint = []
-    for i in range(0, 2):
-        newPoint[i] = math.cos(rotation[i]) * 10 + originPoint[i]
+    for i in range(0, 3):
+        newPoint.append(math.cos(rotation[i]) * 10 + float(originPoint[i]))
 
     return (np.array([originPoint[0], originPoint[1], originPoint[2]]),
             np.array([newPoint[0], newPoint[1], newPoint[2]]))
@@ -200,7 +200,34 @@ MAX_CAM = min(A_CAM['frame_range'][1], B_CAM['frame_range'][1])
 MIN_TRACK = max(A_TRACK['frame_range'][0], B_TRACK['frame_range'][0])
 MAX_TRACK = min(A_TRACK['frame_range'][1], B_TRACK['frame_range'][1])
 
-TRACK_RANGE = (max(MIN_CAM,MIN_TRACK), min(MAX_CAM, MAX_TRACK))
+TRACK_RANGE = (max(MIN_CAM, MIN_TRACK), min(MAX_CAM, MAX_TRACK))
 
-if TRACK_RANGE[1] > TRACK_RANGE[0]:
+if TRACK_RANGE[1] < TRACK_RANGE[0]:
     raise Exception("No overlapping frames for solve!")
+
+def lineCross(marker, frame, camA, camB, trackA, trackB):
+
+    '''Finds the closest point of 2 projected lines.
+    Returns a triple.'''
+
+    # define lines
+    lineA = pointsOnLine(camA, trackA, frame, marker)
+    lineB = pointsOnLine(camB, trackB, frame, marker)
+
+    # calculate intersect
+    intersect = closestDistanceBetweenLines(lineA[0].astype('float64'),
+                                            lineA[1].astype('float64'),
+                                            lineB[0].astype('float64'),
+                                            lineB[1].astype('float64'))
+
+    # define intersecting points and line
+    pointA = intersect[0].tolist()
+    pointB = intersect[1].tolist()
+    #lineDistance = intersect[3] #
+
+    # calculate midpoint
+    midpoint = []
+    for i in range(0, 3):
+        midpoint.append((pointA[i] + pointB[i]) / 2)
+
+    return midpoint
