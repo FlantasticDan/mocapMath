@@ -25,6 +25,7 @@ SENSOR = []
 LENS = []
 AOV = []
 TRACK_NUM = []
+MARKERS = []
 
 def cameraRead(CAMERA_FILE):
 
@@ -91,6 +92,8 @@ def trackerRead(TRACKER_FILE):
             if split[0] == "#####":
                 currentMarker = split[1]
                 trackTrack[currentMarker] = []
+                if currentMarker not in MARKERS:
+                    MARKERS.append(currentMarker)
             else:
                 try:
                     trackTrack[currentMarker].append((int(split[0]), split[1], split[2]))
@@ -121,7 +124,6 @@ def angleOfViewCalc(cam, aov, track):
 
     return finalRotation
 
-
 def pointsOnLine(cameraTransform, track, frame, marker):
 
     '''Calculates 2 points on the line drawn between the camera origin and the
@@ -137,6 +139,7 @@ def pointsOnLine(cameraTransform, track, frame, marker):
     for x in track[marker]:
         if x[0] == frame:
             trackPosition = (x[1], x[2])
+            break
 
     # account for marker based angle modifers
     rotation = angleOfViewCalc(cameraRotation, cameraAOV, trackPosition)
@@ -148,3 +151,45 @@ def pointsOnLine(cameraTransform, track, frame, marker):
 
     return (np.array([originPoint[0], originPoint[1], originPoint[2]]),
             np.array([newPoint[0], newPoint[1], newPoint[2]]))
+
+def closestDistanceBetweenLines(a0, a1, b0, b1):
+
+    '''Given two lines defined by numpy.array pairs (a0,a1,b0,b1)
+    Return the closest points on each segment and their distance'''
+
+    # Modified from code written by Eric Vignola(Fnord):
+    # https://stackoverflow.com/a/18994296
+
+    # Calculate denomitator
+    A = a1 - a0
+    B = b1 - b0
+    magA = np.linalg.norm(A)
+    magB = np.linalg.norm(B)
+
+    _A = A / magA
+    _B = B / magB
+
+    cross = np.cross(_A, _B)
+    denom = np.linalg.norm(cross)**2
+
+    # If lines are parallel (denom=0) test if lines overlap.
+    # If they don't overlap then there is a closest point solution.
+    # If they do overlap, there are infinite closest positions, but there is a closest distance
+    if not denom:
+        d0 = np.dot(_A, (b0-a0))
+
+        # Segments overlap, return distance between parallel segments
+        return None, None, np.linalg.norm(((d0*_A)+a0)-b0)
+
+    # Lines criss-cross: Calculate the projected closest points
+    t = (b0 - a0)
+    detA = np.linalg.det([t, _B, cross])
+    detB = np.linalg.det([t, _A, cross])
+
+    t0 = detA/denom
+    t1 = detB/denom
+
+    pA = a0 + (_A * t0) # Projected closest point on segment A
+    pB = b0 + (_B * t1) # Projected closest point on segment B
+
+    return pA, pB, np.linalg.norm(pA-pB)
