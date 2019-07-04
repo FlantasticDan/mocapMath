@@ -193,3 +193,14 @@ def closestDistanceBetweenLines(a0, a1, b0, b1):
     pB = b0 + (_B * t1) # Projected closest point on segment B
 
     return pA, pB, np.linalg.norm(pA-pB)
+
+# confirm range is solvable
+MIN_CAM = max(A_CAM['frame_range'][0], B_CAM['frame_range'][0])
+MAX_CAM = min(A_CAM['frame_range'][1], B_CAM['frame_range'][1])
+MIN_TRACK = max(A_TRACK['frame_range'][0], B_TRACK['frame_range'][0])
+MAX_TRACK = min(A_TRACK['frame_range'][1], B_TRACK['frame_range'][1])
+
+TRACK_RANGE = (max(MIN_CAM,MIN_TRACK), min(MAX_CAM, MAX_TRACK))
+
+if TRACK_RANGE[1] > TRACK_RANGE[0]:
+    raise Exception("No overlapping frames for solve!")
