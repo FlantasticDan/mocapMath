@@ -33,31 +33,31 @@ def cameraRead(CAMERA_FILE):
 
     cameraTrack = {}
 
-    for i, line in enumerate(CAMERA_FILE):
-        if i == 0:
+    for c, line in enumerate(CAMERA_FILE):
+        if c == 0:
             #CLIP.append(line[23:])
             cameraTrack['clip'] = line[23:-1]
-        elif i == 2:
+        elif c == 2:
             split = line[:-1].split(" ")
             #FRAME_RANGE.append((split[1], split[3]))
             cameraTrack['frame_range'] = (split[1], split[3])
-        elif i == 4:
+        elif c == 4:
             split = line[:-1].split(" ")
             #RESOLUTION.append((split[1], split[3]))
             cameraTrack['resolution'] = (split[1], split[3])
-        elif i == 6:
+        elif c == 6:
             split = line[:-1].split(" ")
             #SENSOR.append((split[1], split[3]))
             cameraTrack['sensor'] = (split[1], split[3])
-        elif i == 8:
+        elif c == 8:
             split = line[:-1].split(" ")
             #LENS.append(split[1])
             cameraTrack['lens'] = split[1]
-        elif i == 10:
+        elif c == 10:
             split = line[:-1].split(" ")
             #AOV.append((split[1], split[3]))
             cameraTrack['aov'] = (split[3], split[5])
-        elif i > 12:
+        elif c > 12:
             split = line[:-1].split(" ")
             cameraTrack[int(split[0])] = (split[1], split[2], split[3],
                                           split[4], split[5], split[6])
@@ -71,33 +71,33 @@ def trackerRead(TRACKER_FILE):
 
     trackTrack = {}
 
-    for i, line in enumerate(TRACKER_FILE):
-        if i == 0:
+    for t, line in enumerate(TRACKER_FILE):
+        if t == 0:
             #CLIP.append(line[24:-1])
             trackTrack['clip'] = line[24:-1]
-        elif i == 2:
+        elif t == 2:
             split = line[:-1].split(" ")
             #FRAME_RANGE.append((split[1], split[3]))
             trackTrack['frame_range'] = (split[1], split[3])
-        elif i == 4:
+        elif t == 4:
             split = line[:-1].split(" ")
             #RESOLUTION.append((split[1], split[3]))
             trackTrack['resolution'] = (split[1], split[3])
-        elif i == 6:
+        elif t == 6:
             split = line[:-1].split(" ")
             #TRACK_NUM.append(split[1])
             trackTrack['track_num'] = split[1]
-        elif i > 8:
+        elif t > 8:
             split = line[:-1].split(" ")
             if split[0] == "#####":
                 currentMarker = split[1]
-                trackTrack[currentMarker] = []
+                trackTrack[currentMarker] = {}
                 if currentMarker not in MARKERS:
                     MARKERS.append(currentMarker)
             else:
                 try:
-                    trackTrack[currentMarker].append((int(split[0]), split[1], split[2]))
-                except ValueError:
+                    trackTrack[currentMarker][int(split[0])] = (split[1], split[2])
+                except IndexError:
                     pass
 
     TRACKER_FILE.close()
@@ -108,7 +108,7 @@ B_CAM = cameraRead(C2_CAM)
 A_TRACK = trackerRead(C1_TRACK)
 B_TRACK = trackerRead(C2_TRACK)
 
-def angleOfViewCalc(cam, aov, track):
+def angleOfViewCalc(cam, aov, trackPos):
 
     '''Calculates the angle of view distortion on the projected
     track and adds that to the camera rotation.  Returns tuple.'''
@@ -116,9 +116,9 @@ def angleOfViewCalc(cam, aov, track):
     trackAOV = []
     finalRotation = []
 
-    for i in range(0, 2):
-        trackAOV.append((float(track[i]) - 0.5) * float(aov[i]))
-        finalRotation.append(float(trackAOV[i]) + float(cam[i]))
+    for o in range(0, 2):
+        trackAOV.append((float(trackPos[o]) - 0.5) * float(aov[o]))
+        finalRotation.append(float(trackAOV[o]) + float(cam[o]))
 
     finalRotation.append(float(cam[2]))
 
@@ -136,18 +136,18 @@ def pointsOnLine(cameraTransform, track, frame, marker):
     cameraAOV = (cameraTransform['aov'][0], cameraTransform['aov'][1])
 
     # extract tracker variables
-    for x in track[marker]:
-        if x[0] == frame:
-            trackPosition = (x[1], x[2])
-            break
+    #for x in track[marker]:
+    #    for g in x[]
+    #    if int(x[0]) == int(frame):
+    trackPosition = track[marker][int(frame)]
 
     # account for marker based angle modifers
     rotation = angleOfViewCalc(cameraRotation, cameraAOV, trackPosition)
 
     # calculate arbitary second point on projected line
     newPoint = []
-    for i in range(0, 3):
-        newPoint.append(math.cos(rotation[i]) * 10 + float(originPoint[i]))
+    for n in range(0, 3):
+        newPoint.append(math.cos(rotation[n]) * 10 + float(originPoint[n]))
 
     return (np.array([originPoint[0], originPoint[1], originPoint[2]]),
             np.array([newPoint[0], newPoint[1], newPoint[2]]))
@@ -223,11 +223,19 @@ def lineCross(marker, frame, camA, camB, trackA, trackB):
     # define intersecting points and line
     pointA = intersect[0].tolist()
     pointB = intersect[1].tolist()
-    #lineDistance = intersect[3] #
+    lineDistance = intersect[2]
 
     # calculate midpoint
     midpoint = []
-    for i in range(0, 3):
-        midpoint.append((pointA[i] + pointB[i]) / 2)
+    for q in range(0, 3):
+        midpoint.append((pointA[q] + pointB[q]) / 2)
+    midpoint.append(lineDistance)
+    return midpoint # (x, y, z, distance)
 
-    return midpoint
+# calculate midpoint for all markers
+EXPORT = {}
+for mark in MARKERS:
+    EXPORT[mark] = {}
+    for w in range(int(TRACK_RANGE[0]), int(TRACK_RANGE[1]) + 1):
+        if w in A_TRACK[mark] and w in B_TRACK[mark]: # check tracking data exists for given frame
+            EXPORT[mark][w] = lineCross(mark, w, A_CAM, B_CAM, A_TRACK, B_TRACK)
