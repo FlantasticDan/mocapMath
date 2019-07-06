@@ -46,7 +46,7 @@ def makeCube(name):
     return D.objects[name]
 
 def addKey(obj, frame, transform):
-    
+
     '''Add location keyframe'''
 
     obj.location = transform
