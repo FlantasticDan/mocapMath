@@ -248,7 +248,7 @@ with open(exportPath, "x") as dataFile:
     dataFile.write("RANGE {} to {}\n\n".format(TRACK_RANGE[0], TRACK_RANGE[1]))
     # loop through nested dictionaries for file export
     for solve in EXPORT:
-        dataFile.write("\n##### {}\n".format([solve]))
+        dataFile.write("\n##### {}\n".format(solve))
         for keyframe in EXPORT[solve]:
             dataFile.write("{:05d} {:8f} {:8f} {:8f}\n".format(keyframe,
                                                                EXPORT[solve][keyframe][0],
