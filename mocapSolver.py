@@ -117,11 +117,18 @@ def angleOfViewCalc(cam, aov, trackPos):
     trackAOV = []
     finalRotation = []
 
-    for o in range(0, 2):
-        trackAOV.append((float(trackPos[o]) - 0.5) * float(aov[o]))
-        finalRotation.append(float(trackAOV[o]) + float(cam[o]))
+    # for o in range(0, 2): # ORIGINAL Y-UP
+    #     trackAOV.append((float(trackPos[o]) - 0.5) * float(aov[o]))
+    #     finalRotation.append(float(trackAOV[o]) + float(cam[o]))
 
-    finalRotation.append(float(cam[2]))
+    # finalRotation.append(float(cam[2]))
+
+    # Revised Z-Up Implementation
+    trackAOV.append((float(trackPos[0]) - 0.5) * float(aov[0])) # x
+    finalRotation.append(float(trackAOV[0]) + float(cam[0])) # x
+    finalRotation.append(float(cam[1])) # y
+    trackAOV.append((float(trackPos[1]) - 0.5) * float(aov[1])) # z
+    finalRotation.append(float(trackAOV[1]) + float(cam[2])) # z
 
     return finalRotation
 
@@ -137,9 +144,6 @@ def pointsOnLine(cameraTransform, track, frame, marker):
     cameraAOV = (cameraTransform['aov'][0], cameraTransform['aov'][1])
 
     # extract tracker variables
-    #for x in track[marker]:
-    #    for g in x[]
-    #    if int(x[0]) == int(frame):
     trackPosition = track[marker][int(frame)]
 
     # account for marker based angle modifers
@@ -196,10 +200,10 @@ def closestDistanceBetweenLines(a0, a1, b0, b1):
     return pA, pB, np.linalg.norm(pA-pB)
 
 # confirm range is solvable
-MIN_CAM = max(A_CAM['frame_range'][0], B_CAM['frame_range'][0])
-MAX_CAM = min(A_CAM['frame_range'][1], B_CAM['frame_range'][1])
-MIN_TRACK = max(A_TRACK['frame_range'][0], B_TRACK['frame_range'][0])
-MAX_TRACK = min(A_TRACK['frame_range'][1], B_TRACK['frame_range'][1])
+MIN_CAM = max(int(A_CAM['frame_range'][0]), int(B_CAM['frame_range'][0]))
+MAX_CAM = min(int(A_CAM['frame_range'][1]), int(B_CAM['frame_range'][1]))
+MIN_TRACK = max(int(A_TRACK['frame_range'][0]), int(B_TRACK['frame_range'][0]))
+MAX_TRACK = min(int(A_TRACK['frame_range'][1]), int(B_TRACK['frame_range'][1]))
 
 TRACK_RANGE = (max(MIN_CAM, MIN_TRACK), min(MAX_CAM, MAX_TRACK))
 
