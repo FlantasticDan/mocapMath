@@ -6,6 +6,7 @@ import math
 import tkinter as tk
 from tkinter import filedialog
 import numpy as np
+import mathutils
 
 # configure UI to hide default window
 root = tk.Tk()
@@ -115,22 +116,18 @@ def angleOfViewCalc(cam, aov, trackPos):
     track and adds that to the camera rotation.  Returns tuple.'''
 
     trackAOV = []
-    finalRotation = []
 
-    # for o in range(0, 2): # ORIGINAL Y-UP
-    #     trackAOV.append((float(trackPos[o]) - 0.5) * float(aov[o]))
-    #     finalRotation.append(float(trackAOV[o]) + float(cam[o]))
+    # calculate the camera angle compensation based on track pixel positon
+    trackAOV.append((float(trackPos[0]) - 0.5) * float(aov[0])) # x adjusts y
+    trackAOV.append((float(trackPos[1]) - 0.5) * float(aov[1])) # z adjusts x
 
-    # finalRotation.append(float(cam[2]))
+    # import camera rotational euler angles
+    cameraEuler = mathutils.Euler((float(cam[0]), float(cam[1]), float(cam[2])))
+    # rotate camera based on tracker-based compensations
+    cameraEuler.rotate_axis('X', trackAOV[1])
+    cameraEuler.rotate_axis('Y', -1 * trackAOV[0])
 
-    # Revised Z-Up Implementation
-    trackAOV.append((float(trackPos[0]) - 0.5) * float(aov[0])) # x
-    finalRotation.append(float(trackAOV[0]) + float(cam[0])) # x
-    finalRotation.append(float(cam[1])) # y
-    trackAOV.append((float(trackPos[1]) - 0.5) * float(aov[1])) # z
-    finalRotation.append(float(trackAOV[1]) + float(cam[2])) # z
-
-    return finalRotation
+    return (cameraEuler.x, cameraEuler.y, cameraEuler.z)
 
 def pointsOnLine(cameraTransform, track, frame, marker):
 
