@@ -143,7 +143,7 @@ def pointRotate(p1, p2, p0, theta):
     # Modified from code written by Bruce Vaughan of BV Detailing & Design
     # http://paulbourke.net/geometry/rotate/PointRotate.py
 
-    # Translate so axis is at origin    
+    # Translate so axis is at origin
     p = [] 
     for point in range(0,3):
         p.append(p0[point] - p1[point])
@@ -159,7 +159,7 @@ def pointRotate(p1, p2, p0, theta):
     # Rotation axis unit vector
     n = (N[0]/Nm, N[1]/Nm, N[2]/Nm)
 
-    # Matrix common factors     
+    # Matrix common factors
     c = math.cos(theta)
     t = (1 - math.cos(theta))
     s = math.sin(theta)
@@ -208,10 +208,16 @@ def pointsOnLine(cameraTransform, track, frame, marker):
     # account for marker based angle modifers
     rotation = angleOfViewCalc(cameraRotation, cameraAOV, trackPosition)
 
-    # calculate arbitary second point on projected line
+    # rotate point projected from original camera position about origin
+    cameraPoint = (0, 0, -1)
+    xRotate = pointRotate((0, 0, 0), (5, 0, 0), cameraPoint, rotation[0])
+    yRotate = pointRotate((0, 0, 0), (0, 5, 0), xRotate, rotation[1])
+    zRotate = pointRotate((0, 0, 0), (0, 0, 5), yRotate, rotation[2])
+
+    # translate offset point to align with camera position
     newPoint = []
-    for n in range(0, 3):
-        newPoint.append(math.cos(rotation[n]) * 10 + float(originPoint[n]))
+    for r in range(0, 3):
+        newPoint.append(zRotate[r] + float(originPoint[r]))
 
     return (np.array([originPoint[0], originPoint[1], originPoint[2]]),
             np.array([newPoint[0], newPoint[1], newPoint[2]]))
