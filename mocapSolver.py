@@ -137,22 +137,22 @@ def pointRotate(p1, p2, p0, theta):
     The coordinate system is assumed to be right-hand.
     Arguments: 'axis p1', 'axis p2', 'p to be rotated', 'rotation (in radians)'
 
-    Reference 'Rotate A Point About An Arbitrary Axis (3D)' - Paul Bourke        
+    Reference 'Rotate A Point About An Arbitrary Axis (3D)' - Paul Bourke
     '''
 
     # Modified from code written by Bruce Vaughan of BV Detailing & Design
     # http://paulbourke.net/geometry/rotate/PointRotate.py
 
     # Translate so axis is at origin
-    p = [] 
-    for point in range(0,3):
+    p = []
+    for point in range(0, 3):
         p.append(p0[point] - p1[point])
 
     # Initialize point q
-    q = [0.0,0.0,0.0]
+    q = [0.0, 0.0, 0.0]
     N = []
-    for point1 in range(0,3):
-        N.append(p2[point1] - p1[point1])    
+    for point1 in range(0, 3):
+        N.append(p2[point1] - p1[point1])
 
     Nm = math.sqrt(N[0]**2 + N[1]**2 + N[2]**2)
 
@@ -187,7 +187,7 @@ def pointRotate(p1, p2, p0, theta):
 
     # Translate axis and rotated point back to original location
     answer = []
-    for point2 in range(0,3):
+    for point2 in range(0, 3):
         answer.append(q[point2] + p1[point2])
     return answer
 
