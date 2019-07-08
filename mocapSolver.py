@@ -129,6 +129,68 @@ def angleOfViewCalc(cam, aov, trackPos):
 
     return (cameraEuler.x, cameraEuler.y, cameraEuler.z)
 
+def pointRotate(p1, p2, p0, theta):
+
+    '''
+    Returns a point rotated about an arbitrary axis in 3D.
+    Positive angles are counter-clockwise looking down the axis toward the origin.
+    The coordinate system is assumed to be right-hand.
+    Arguments: 'axis p1', 'axis p2', 'p to be rotated', 'rotation (in radians)'
+
+    Reference 'Rotate A Point About An Arbitrary Axis (3D)' - Paul Bourke        
+    '''
+
+    # Modified from code written by Bruce Vaughan of BV Detailing & Design
+    # http://paulbourke.net/geometry/rotate/PointRotate.py
+
+    # Translate so axis is at origin    
+    p = [] 
+    for point in range(0,3):
+        p.append(p0[point] - p1[point])
+
+    # Initialize point q
+    q = [0.0,0.0,0.0]
+    N = []
+    for point1 in range(0,3):
+        N.append(p2[point1] - p1[point1])    
+
+    Nm = math.sqrt(N[0]**2 + N[1]**2 + N[2]**2)
+
+    # Rotation axis unit vector
+    n = (N[0]/Nm, N[1]/Nm, N[2]/Nm)
+
+    # Matrix common factors     
+    c = math.cos(theta)
+    t = (1 - math.cos(theta))
+    s = math.sin(theta)
+    X = n[0]
+    Y = n[1]
+    Z = n[2]
+
+    # Matrix 'M'
+    d11 = t*X**2 + c
+    d12 = t*X*Y - s*Z
+    d13 = t*X*Z + s*Y
+    d21 = t*X*Y + s*Z
+    d22 = t*Y**2 + c
+    d23 = t*Y*Z - s*X
+    d31 = t*X*Z - s*Y
+    d32 = t*Y*Z + s*X
+    d33 = t*Z**2 + c
+
+    #            |p.x|
+    # Matrix 'M'*|p.y|
+    #            |p.z|
+    q[0] = d11*p[0] + d12*p[1] + d13*p[2]
+    q[1] = d21*p[0] + d22*p[1] + d23*p[2]
+    q[2] = d31*p[0] + d32*p[1] + d33*p[2]
+
+    # Translate axis and rotated point back to original location
+    answer = []
+    for point2 in range(0,3):
+        answer.append(q[point2] + p1[point2])
+    return answer
+
 def pointsOnLine(cameraTransform, track, frame, marker):
 
     '''Calculates 2 points on the line drawn between the camera origin and the
