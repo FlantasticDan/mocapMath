@@ -41,7 +41,7 @@ def makeCube(name):
 
     '''Creates cube and returns blender data object.'''
 
-    bpy.ops.mesh.primitive_cube_add(size=0.5)
+    bpy.ops.mesh.primitive_cube_add(size=0.1)
     C.object.name = name
     return D.objects[name]
 
