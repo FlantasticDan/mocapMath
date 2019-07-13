@@ -19,13 +19,6 @@ C2_CAM = open(filedialog.askopenfilename(title="Camera 2 | CAMERA DATA"))
 C2_TRACK = open(filedialog.askopenfilename(title="Camera 2 | TRACKER DATA"))
 
 # define headers
-CLIP = []
-FRAME_RANGE = []
-RESOLUTION = []
-SENSOR = []
-LENS = []
-AOV = []
-TRACK_NUM = []
 MARKERS = []
 
 def cameraRead(CAMERA_FILE):
@@ -36,27 +29,21 @@ def cameraRead(CAMERA_FILE):
 
     for c, line in enumerate(CAMERA_FILE):
         if c == 0:
-            #CLIP.append(line[23:])
             cameraTrack['clip'] = line[23:-1]
         elif c == 2:
             split = line[:-1].split(" ")
-            #FRAME_RANGE.append((split[1], split[3]))
             cameraTrack['frame_range'] = (split[1], split[3])
         elif c == 4:
             split = line[:-1].split(" ")
-            #RESOLUTION.append((split[1], split[3]))
             cameraTrack['resolution'] = (split[1], split[3])
         elif c == 6:
             split = line[:-1].split(" ")
-            #SENSOR.append((split[1], split[3]))
             cameraTrack['sensor'] = (split[1], split[3])
         elif c == 8:
             split = line[:-1].split(" ")
-            #LENS.append(split[1])
             cameraTrack['lens'] = split[1]
         elif c == 10:
             split = line[:-1].split(" ")
-            #AOV.append((split[1], split[3]))
             cameraTrack['aov'] = (split[3], split[5])
         elif c > 12:
             split = line[:-1].split(" ")
@@ -74,15 +61,12 @@ def trackerRead(TRACKER_FILE):
 
     for t, line in enumerate(TRACKER_FILE):
         if t == 0:
-            #CLIP.append(line[24:-1])
             trackTrack['clip'] = line[24:-1]
         elif t == 2:
             split = line[:-1].split(" ")
-            #FRAME_RANGE.append((split[1], split[3]))
             trackTrack['frame_range'] = (split[1], split[3])
         elif t == 4:
             split = line[:-1].split(" ")
-            #RESOLUTION.append((split[1], split[3]))
             trackTrack['resolution'] = (split[1], split[3])
         elif t == 6:
             split = line[:-1].split(" ")
