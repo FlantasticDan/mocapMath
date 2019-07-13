@@ -20,6 +20,7 @@ C2_TRACK = open(filedialog.askopenfilename(title="Camera 2 | TRACKER DATA"))
 
 # define headers
 MARKERS = []
+JOINTS = []
 
 def cameraRead(CAMERA_FILE):
 
@@ -70,15 +71,18 @@ def trackerRead(TRACKER_FILE):
             trackTrack['resolution'] = (split[1], split[3])
         elif t == 6:
             split = line[:-1].split(" ")
-            #TRACK_NUM.append(split[1])
             trackTrack['track_num'] = split[1]
         elif t > 8:
             split = line[:-1].split(" ")
             if split[0] == "#####":
                 currentMarker = split[1]
+                jointSplit = currentMarker.split(".")
+                joint = jointSplit[0]
                 trackTrack[currentMarker] = {}
                 if currentMarker not in MARKERS:
                     MARKERS.append(currentMarker)
+                if joint not in JOINTS:
+                    JOINTS.append(joint)
             else:
                 try:
                     trackTrack[currentMarker][int(split[0])] = (split[1], split[2])
@@ -259,14 +263,14 @@ TRACK_RANGE = (max(MIN_CAM, MIN_TRACK), min(MAX_CAM, MAX_TRACK))
 if TRACK_RANGE[1] < TRACK_RANGE[0]:
     raise Exception("No overlapping frames for solve!")
 
-def lineCross(marker, frame, camA, camB, trackA, trackB):
+def lineCross(markerA, markerB, frame, camA, camB, trackA, trackB):
 
     '''Finds the closest point of 2 projected lines.
     Returns a triple.'''
 
     # define lines
-    lineA = pointsOnLine(camA, trackA, frame, marker)
-    lineB = pointsOnLine(camB, trackB, frame, marker)
+    lineA = pointsOnLine(camA, trackA, frame, markerA)
+    lineB = pointsOnLine(camB, trackB, frame, markerB)
 
     # calculate intersect
     intersect = closestDistanceBetweenLines(lineA[0].astype('float64'),
@@ -286,13 +290,38 @@ def lineCross(marker, frame, camA, camB, trackA, trackB):
     midpoint.append(lineDistance)
     return midpoint # (x, y, z, distance)
 
-# calculate midpoint for all markers
+def markerCrossCheck(joint, frame):
+
+    '''Check for identical joint markers or identify the closest pair.'''
+
+    for check in range(1, 100):
+        iteration = "{:02d}".format(check)
+        mark = joint + "." + iteration
+        try:
+            if frame in A_TRACK[mark] and frame in B_TRACK[mark]:
+                return (mark, mark)
+        except KeyError:
+            pass
+    for doubleCheck in range(1, 100):
+        doubleIteration = "{:02d}".format(doubleCheck)
+        doubleMark = joint + "." + doubleIteration
+        for tripleCheck in range(1, 100):
+            tripleIteration = "{:02d}".format(tripleCheck)
+            tripleMark = joint + "." + tripleIteration
+            try:
+                if frame in A_TRACK[doubleMark] and frame in B_TRACK[tripleMark]:
+                    return (doubleMark, tripleMark)
+            except KeyError:
+                pass
+
+# calculate midpoint for all joints
 EXPORT = {}
-for mark in MARKERS:
-    EXPORT[mark] = {}
+for joint in JOINTS:
+    EXPORT[joint] = {}
     for w in range(int(TRACK_RANGE[0]), int(TRACK_RANGE[1]) + 1):
-        if w in A_TRACK[mark] and w in B_TRACK[mark]: # check tracking data exists for given frame
-            EXPORT[mark][w] = lineCross(mark, w, A_CAM, B_CAM, A_TRACK, B_TRACK)
+        markers = markerCrossCheck(joint, w)
+        if markers is not None:
+            EXPORT[joint][w] = lineCross(markers[0], markers[1], w, A_CAM, B_CAM, A_TRACK, B_TRACK)
 
 # export coordinate data
 exportPath = filedialog.asksaveasfilename(initialfile="mocapSolved.txt")
