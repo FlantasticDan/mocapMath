@@ -266,7 +266,7 @@ if TRACK_RANGE[1] < TRACK_RANGE[0]:
 def lineCross(markerA, markerB, frame, camA, camB, trackA, trackB):
 
     '''Finds the closest point of 2 projected lines.
-    Returns a triple.'''
+    Returns a triple + distance between lines.'''
 
     # define lines
     lineA = pointsOnLine(camA, trackA, frame, markerA)
@@ -299,7 +299,10 @@ def markerCrossCheck(joint, frame):
         mark = joint + "." + iteration
         try:
             if frame in A_TRACK[mark] and frame in B_TRACK[mark]:
-                return (mark, mark)
+                if check == 1:
+                    return (mark, mark, True)
+                else:
+                    return (mark, mark, False)
         except KeyError:
             pass
     for doubleCheck in range(1, 100):
@@ -310,7 +313,7 @@ def markerCrossCheck(joint, frame):
             tripleMark = joint + "." + tripleIteration
             try:
                 if frame in A_TRACK[doubleMark] and frame in B_TRACK[tripleMark]:
-                    return (doubleMark, tripleMark)
+                    return (doubleMark, tripleMark, False)
             except KeyError:
                 pass
 
@@ -321,7 +324,17 @@ for joint in JOINTS:
     for w in range(int(TRACK_RANGE[0]), int(TRACK_RANGE[1]) + 1):
         markers = markerCrossCheck(joint, w)
         if markers is not None:
-            EXPORT[joint][w] = lineCross(markers[0], markers[1], w, A_CAM, B_CAM, A_TRACK, B_TRACK)
+            if markers[2] is True:
+                EXPORT[joint][w] = lineCross(markers[0], markers[1], w,
+                                             A_CAM, B_CAM, A_TRACK, B_TRACK)
+            else:
+                lastFrame = lineCross(markers[0], markers[1], w-1, A_CAM, B_CAM, A_TRACK, B_TRACK)
+                thisFrame = lineCross(markers[0], markers[1], w, A_CAM, B_CAM, A_TRACK, B_TRACK)
+                new_X = (thisFrame[0] - lastFrame [0]) + EXPORT[joint][w-1][0]
+                new_Y = (thisFrame[1] - lastFrame [1]) + EXPORT[joint][w-1][1]
+                new_Z = (thisFrame[2] - lastFrame [2]) + EXPORT[joint][w-1][2]
+                EXPORT[joint][w] = (new_X, new_Y, new_Z)
+
 
 # export coordinate data
 exportPath = filedialog.asksaveasfilename(initialfile="mocapSolved.txt")
