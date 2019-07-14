@@ -6,6 +6,7 @@ import math
 import tkinter as tk
 from tkinter import filedialog
 import numpy as np
+import mathutils
 
 # configure UI to hide default window
 root = tk.Tk()
@@ -18,14 +19,8 @@ C2_CAM = open(filedialog.askopenfilename(title="Camera 2 | CAMERA DATA"))
 C2_TRACK = open(filedialog.askopenfilename(title="Camera 2 | TRACKER DATA"))
 
 # define headers
-CLIP = []
-FRAME_RANGE = []
-RESOLUTION = []
-SENSOR = []
-LENS = []
-AOV = []
-TRACK_NUM = []
 MARKERS = []
+JOINTS = []
 
 def cameraRead(CAMERA_FILE):
 
@@ -35,27 +30,21 @@ def cameraRead(CAMERA_FILE):
 
     for c, line in enumerate(CAMERA_FILE):
         if c == 0:
-            #CLIP.append(line[23:])
             cameraTrack['clip'] = line[23:-1]
         elif c == 2:
             split = line[:-1].split(" ")
-            #FRAME_RANGE.append((split[1], split[3]))
             cameraTrack['frame_range'] = (split[1], split[3])
         elif c == 4:
             split = line[:-1].split(" ")
-            #RESOLUTION.append((split[1], split[3]))
             cameraTrack['resolution'] = (split[1], split[3])
         elif c == 6:
             split = line[:-1].split(" ")
-            #SENSOR.append((split[1], split[3]))
             cameraTrack['sensor'] = (split[1], split[3])
         elif c == 8:
             split = line[:-1].split(" ")
-            #LENS.append(split[1])
             cameraTrack['lens'] = split[1]
         elif c == 10:
             split = line[:-1].split(" ")
-            #AOV.append((split[1], split[3]))
             cameraTrack['aov'] = (split[3], split[5])
         elif c > 12:
             split = line[:-1].split(" ")
@@ -73,27 +62,27 @@ def trackerRead(TRACKER_FILE):
 
     for t, line in enumerate(TRACKER_FILE):
         if t == 0:
-            #CLIP.append(line[24:-1])
             trackTrack['clip'] = line[24:-1]
         elif t == 2:
             split = line[:-1].split(" ")
-            #FRAME_RANGE.append((split[1], split[3]))
             trackTrack['frame_range'] = (split[1], split[3])
         elif t == 4:
             split = line[:-1].split(" ")
-            #RESOLUTION.append((split[1], split[3]))
             trackTrack['resolution'] = (split[1], split[3])
         elif t == 6:
             split = line[:-1].split(" ")
-            #TRACK_NUM.append(split[1])
             trackTrack['track_num'] = split[1]
         elif t > 8:
             split = line[:-1].split(" ")
             if split[0] == "#####":
                 currentMarker = split[1]
+                jointSplit = currentMarker.split(".")
+                joint = jointSplit[0]
                 trackTrack[currentMarker] = {}
                 if currentMarker not in MARKERS:
                     MARKERS.append(currentMarker)
+                if joint not in JOINTS:
+                    JOINTS.append(joint)
             else:
                 try:
                     trackTrack[currentMarker][int(split[0])] = (split[1], split[2])
@@ -115,15 +104,80 @@ def angleOfViewCalc(cam, aov, trackPos):
     track and adds that to the camera rotation.  Returns tuple.'''
 
     trackAOV = []
-    finalRotation = []
 
-    for o in range(0, 2):
-        trackAOV.append((float(trackPos[o]) - 0.5) * float(aov[o]))
-        finalRotation.append(float(trackAOV[o]) + float(cam[o]))
+    # calculate the camera angle compensation based on track pixel positon
+    trackAOV.append((float(trackPos[0]) - 0.5) * float(aov[0])) # x adjusts y
+    trackAOV.append((float(trackPos[1]) - 0.5) * float(aov[1])) # z adjusts x
 
-    finalRotation.append(float(cam[2]))
+    # import camera rotational euler angles
+    cameraEuler = mathutils.Euler((float(cam[0]), float(cam[1]), float(cam[2])))
+    # rotate camera based on tracker-based compensations
+    cameraEuler.rotate_axis('X', trackAOV[1])
+    cameraEuler.rotate_axis('Y', -1 * trackAOV[0])
 
-    return finalRotation
+    return (cameraEuler.x, cameraEuler.y, cameraEuler.z)
+
+def pointRotate(p1, p2, p0, theta):
+
+    '''
+    Returns a point rotated about an arbitrary axis in 3D.
+    Positive angles are counter-clockwise looking down the axis toward the origin.
+    The coordinate system is assumed to be right-hand.
+    Arguments: 'axis p1', 'axis p2', 'p to be rotated', 'rotation (in radians)'
+
+    Reference 'Rotate A Point About An Arbitrary Axis (3D)' - Paul Bourke
+    '''
+
+    # Modified from code written by Bruce Vaughan of BV Detailing & Design
+    # http://paulbourke.net/geometry/rotate/PointRotate.py
+
+    # Translate so axis is at origin
+    p = []
+    for point in range(0, 3):
+        p.append(p0[point] - p1[point])
+
+    # Initialize point q
+    q = [0.0, 0.0, 0.0]
+    N = []
+    for point1 in range(0, 3):
+        N.append(p2[point1] - p1[point1])
+
+    Nm = math.sqrt(N[0]**2 + N[1]**2 + N[2]**2)
+
+    # Rotation axis unit vector
+    n = (N[0]/Nm, N[1]/Nm, N[2]/Nm)
+
+    # Matrix common factors
+    c = math.cos(theta)
+    t = (1 - math.cos(theta))
+    s = math.sin(theta)
+    X = n[0]
+    Y = n[1]
+    Z = n[2]
+
+    # Matrix 'M'
+    d11 = t*X**2 + c
+    d12 = t*X*Y - s*Z
+    d13 = t*X*Z + s*Y
+    d21 = t*X*Y + s*Z
+    d22 = t*Y**2 + c
+    d23 = t*Y*Z - s*X
+    d31 = t*X*Z - s*Y
+    d32 = t*Y*Z + s*X
+    d33 = t*Z**2 + c
+
+    #            |p.x|
+    # Matrix 'M'*|p.y|
+    #            |p.z|
+    q[0] = d11*p[0] + d12*p[1] + d13*p[2]
+    q[1] = d21*p[0] + d22*p[1] + d23*p[2]
+    q[2] = d31*p[0] + d32*p[1] + d33*p[2]
+
+    # Translate axis and rotated point back to original location
+    answer = []
+    for point2 in range(0, 3):
+        answer.append(q[point2] + p1[point2])
+    return answer
 
 def pointsOnLine(cameraTransform, track, frame, marker):
 
@@ -137,18 +191,21 @@ def pointsOnLine(cameraTransform, track, frame, marker):
     cameraAOV = (cameraTransform['aov'][0], cameraTransform['aov'][1])
 
     # extract tracker variables
-    #for x in track[marker]:
-    #    for g in x[]
-    #    if int(x[0]) == int(frame):
     trackPosition = track[marker][int(frame)]
 
     # account for marker based angle modifers
     rotation = angleOfViewCalc(cameraRotation, cameraAOV, trackPosition)
 
-    # calculate arbitary second point on projected line
+    # rotate point projected from original camera position about origin
+    cameraPoint = (0, 0, -1)
+    xRotate = pointRotate((0, 0, 0), (5, 0, 0), cameraPoint, rotation[0])
+    yRotate = pointRotate((0, 0, 0), (0, 5, 0), xRotate, rotation[1])
+    zRotate = pointRotate((0, 0, 0), (0, 0, 5), yRotate, rotation[2])
+
+    # translate offset point to align with camera position
     newPoint = []
-    for n in range(0, 3):
-        newPoint.append(math.cos(rotation[n]) * 10 + float(originPoint[n]))
+    for r in range(0, 3):
+        newPoint.append(zRotate[r] + float(originPoint[r]))
 
     return (np.array([originPoint[0], originPoint[1], originPoint[2]]),
             np.array([newPoint[0], newPoint[1], newPoint[2]]))
@@ -196,24 +253,24 @@ def closestDistanceBetweenLines(a0, a1, b0, b1):
     return pA, pB, np.linalg.norm(pA-pB)
 
 # confirm range is solvable
-MIN_CAM = max(A_CAM['frame_range'][0], B_CAM['frame_range'][0])
-MAX_CAM = min(A_CAM['frame_range'][1], B_CAM['frame_range'][1])
-MIN_TRACK = max(A_TRACK['frame_range'][0], B_TRACK['frame_range'][0])
-MAX_TRACK = min(A_TRACK['frame_range'][1], B_TRACK['frame_range'][1])
+MIN_CAM = max(int(A_CAM['frame_range'][0]), int(B_CAM['frame_range'][0]))
+MAX_CAM = min(int(A_CAM['frame_range'][1]), int(B_CAM['frame_range'][1]))
+MIN_TRACK = max(int(A_TRACK['frame_range'][0]), int(B_TRACK['frame_range'][0]))
+MAX_TRACK = min(int(A_TRACK['frame_range'][1]), int(B_TRACK['frame_range'][1]))
 
 TRACK_RANGE = (max(MIN_CAM, MIN_TRACK), min(MAX_CAM, MAX_TRACK))
 
 if TRACK_RANGE[1] < TRACK_RANGE[0]:
     raise Exception("No overlapping frames for solve!")
 
-def lineCross(marker, frame, camA, camB, trackA, trackB):
+def lineCross(markerA, markerB, frame, camA, camB, trackA, trackB):
 
     '''Finds the closest point of 2 projected lines.
-    Returns a triple.'''
+    Returns a triple + distance between lines.'''
 
     # define lines
-    lineA = pointsOnLine(camA, trackA, frame, marker)
-    lineB = pointsOnLine(camB, trackB, frame, marker)
+    lineA = pointsOnLine(camA, trackA, frame, markerA)
+    lineB = pointsOnLine(camB, trackB, frame, markerB)
 
     # calculate intersect
     intersect = closestDistanceBetweenLines(lineA[0].astype('float64'),
@@ -233,13 +290,51 @@ def lineCross(marker, frame, camA, camB, trackA, trackB):
     midpoint.append(lineDistance)
     return midpoint # (x, y, z, distance)
 
-# calculate midpoint for all markers
+def markerCrossCheck(joint, frame):
+
+    '''Check for identical joint markers or identify the closest pair.'''
+
+    for check in range(1, 100):
+        iteration = "{:02d}".format(check)
+        mark = joint + "." + iteration
+        try:
+            if frame in A_TRACK[mark] and frame in B_TRACK[mark]:
+                if check == 1:
+                    return (mark, mark, True)
+                else:
+                    return (mark, mark, False)
+        except KeyError:
+            pass
+    for doubleCheck in range(1, 100):
+        doubleIteration = "{:02d}".format(doubleCheck)
+        doubleMark = joint + "." + doubleIteration
+        for tripleCheck in range(1, 100):
+            tripleIteration = "{:02d}".format(tripleCheck)
+            tripleMark = joint + "." + tripleIteration
+            try:
+                if frame in A_TRACK[doubleMark] and frame in B_TRACK[tripleMark]:
+                    return (doubleMark, tripleMark, False)
+            except KeyError:
+                pass
+
+# calculate midpoint for all joints
 EXPORT = {}
-for mark in MARKERS:
-    EXPORT[mark] = {}
+for joint in JOINTS:
+    EXPORT[joint] = {}
     for w in range(int(TRACK_RANGE[0]), int(TRACK_RANGE[1]) + 1):
-        if w in A_TRACK[mark] and w in B_TRACK[mark]: # check tracking data exists for given frame
-            EXPORT[mark][w] = lineCross(mark, w, A_CAM, B_CAM, A_TRACK, B_TRACK)
+        markers = markerCrossCheck(joint, w)
+        if markers is not None:
+            if markers[2] is True:
+                EXPORT[joint][w] = lineCross(markers[0], markers[1], w,
+                                             A_CAM, B_CAM, A_TRACK, B_TRACK)
+            else:
+                lastFrame = lineCross(markers[0], markers[1], w-1, A_CAM, B_CAM, A_TRACK, B_TRACK)
+                thisFrame = lineCross(markers[0], markers[1], w, A_CAM, B_CAM, A_TRACK, B_TRACK)
+                new_X = (thisFrame[0] - lastFrame [0]) + EXPORT[joint][w-1][0]
+                new_Y = (thisFrame[1] - lastFrame [1]) + EXPORT[joint][w-1][1]
+                new_Z = (thisFrame[2] - lastFrame [2]) + EXPORT[joint][w-1][2]
+                EXPORT[joint][w] = (new_X, new_Y, new_Z)
+
 
 # export coordinate data
 exportPath = filedialog.asksaveasfilename(initialfile="mocapSolved.txt")
@@ -248,7 +343,7 @@ with open(exportPath, "x") as dataFile:
     dataFile.write("RANGE {} to {}\n\n".format(TRACK_RANGE[0], TRACK_RANGE[1]))
     # loop through nested dictionaries for file export
     for solve in EXPORT:
-        dataFile.write("\n##### {}\n".format([solve]))
+        dataFile.write("\n##### {}\n".format(solve))
         for keyframe in EXPORT[solve]:
             dataFile.write("{:05d} {:8f} {:8f} {:8f}\n".format(keyframe,
                                                                EXPORT[solve][keyframe][0],
