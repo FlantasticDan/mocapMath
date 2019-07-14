@@ -1,7 +1,7 @@
 # mocapMath
 Motion capture is expensive and complex, but what if it wasn't?
 
-### :construction: WORK IN PROGRESS :construction:
+### :construction: Work in Progress  :construction:
 Enough things work that if *everything* is done perfectly you will get proper results, otherwise `mocapSolver.py` will get very upset, so upset in fact it won't even tell you what's wrong.
 
 ## Abstract
