@@ -1,6 +1,9 @@
 # mocapMath
 Motion capture is expensive and complex, but what if it wasn't?
 
+### :construction: WORK IN PROGRESS :construction:
+Enough things work that if *everything* is done perfectly you will get proper results, otherwise `mocapSolver.py` will get very upset, so upset in fact it won't even tell you what's wrong.
+
 ## Abstract
 Motion capture isn't a new technology but rather it is well established.  Unfortunatly the tools used by the VFX industry on major motion pictures are expensive.  Specialized suits and/or capture studios aren't easy to come by.
 
@@ -11,13 +14,13 @@ At it's core motion capture is just geometric math, taking 2D images and compari
 2. Within each Blender file select the camera created out of the solve and run `blenderCameraExport.py`.
     - Blender will export `*_CAMERAexport.txt` files in the same directory as the `.blend` files.
 3. In two additional seperate `.blend` files use the Blender Motion Tracking workspace to track the motion capture joints.
-    - Tracks don't need to last the entire frame range, they can cut in and out.
+    - Tracks don't need to last the entire frame range, they can cut in and out, but they should be tracked for every possible frame.
     - Tracks of the same point **_must_** have the same _Track Name_.
-        - Use naming scheme `joint_##`
+        - Use naming scheme `joint.##`
 4. Within each Blender file run `blenderTrackExport.py`.
     - Blender will export `*_TRACKexport.txt` files in the same directory as the `.blend` files.
 5. Run `mocapSolver.py` in your IDE of choice.
-    - **Dependencies:** numPy, mathutils
+    - **Dependencies:** numPy, [mathutils](https://github.com/majimboo/py-mathutils)
 6. When prompted select the previously exported `*.txt` files.
     - **Note:** the order in which the files are opened matters, first both camera and track from one scene followed by camera and track from the other.
 7. Select a directoy to export the generated solve data but __*DO NOT*__ change the prefilled filename `mocapSolved.txt`.
