@@ -1,5 +1,4 @@
 import bpy
-D = bpy.data
 
 class TrackerExporter(bpy.types.Operator):
     bl_idname = "mocapmath.track_export"
@@ -9,6 +8,7 @@ class TrackerExporter(bpy.types.Operator):
     def execute(self, context):
         # identify scene and tracks in blender data blocks
         C = context
+        D = bpy.data
         SCENE = C.scene
         CLIP = D.movieclips[0]
         TRACKER = CLIP.tracking.tracks

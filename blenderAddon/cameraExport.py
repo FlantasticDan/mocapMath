@@ -1,7 +1,7 @@
 import math
 import bpy
 
-D = bpy.data
+
 
 class CameraExporter(bpy.types.Operator):
     bl_idname = "mocapmath.camera_export"
@@ -14,7 +14,7 @@ class CameraExporter(bpy.types.Operator):
 
     def execute(self, context):
         C = context
-
+        D = bpy.data
         # identify camera in blender data blocks
         CAMERA = D.cameras[0]
         CAMERA_OBJ = D.objects[C.object.name]

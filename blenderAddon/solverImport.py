@@ -1,5 +1,4 @@
 import bpy
-D = bpy.data
 
 class SolverImporter(bpy.types.Operator):
     bl_idname = "mocapmath.solve_import"
@@ -8,6 +7,7 @@ class SolverImporter(bpy.types.Operator):
 
     def execute(self, context):
         C = context
+        D = bpy.data
         # find solver file
         filepath = C.blend_data.filepath
         filepath = filepath.split("\\")
