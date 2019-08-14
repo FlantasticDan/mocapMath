@@ -12,6 +12,7 @@ bl_info = {
     "description": "Utility to bridge Blender to mocapMath.",
     "warning": "BETA: Don't be suprised if it doesn't work.",
     "wiki_url": "https://github.com/FlantasticDan/mocapMath",
+    "tracker_url": "https://github.com/FlantasticDan/mocapMath/issues",
     "category": "Import-Export",
 }
 
