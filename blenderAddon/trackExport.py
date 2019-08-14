@@ -5,6 +5,10 @@ class TrackerExporter(bpy.types.Operator):
     bl_label = "Export Trackers"
     bl_description = "Exports all tracked markers for later calculation."
 
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) is 0
+
     def execute(self, context):
         # identify scene and tracks in blender data blocks
         C = context
