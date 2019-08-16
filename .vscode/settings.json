@@ -2,7 +2,8 @@
     "python.linting.pylintEnabled": true,
     "python.linting.pylintArgs": [
         "--disable=F0401",
-        "--disable=C0103"
+        "--disable=C0103",
+        "--disable=E1101"
     ],
     "python.linting.enabled": true,
 }
