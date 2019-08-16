@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import filedialog
+import sys
 import cv2
 import numpy
 
@@ -30,7 +31,7 @@ def makeChessboard(col, row):
 
 def detectCorners(imagePath):
     imgC = cv2.imread(imagePath)
-    found, intersects = cv2.findChessboardCorners(imgC, PATTERN)
+    found, intersects = cv2.findChessboardCorners(imgC, PATTERN, flags=cv2.CALIB_CB_FAST_CHECK)
 
     corners = []
 
@@ -51,6 +52,7 @@ success = 0
 errors = 0
 
 # Chessboard Corner Detection
+count = 1
 for image in os.listdir(imageDir):
     img = os.path.join(imageDir, image)
     try:
@@ -59,14 +61,17 @@ for image in os.listdir(imageDir):
         objectPoints.append(BOARD)
         success = success + 1
     except Exception:
-        print("{} has errored.".format(image))
+        print("\n{} has errored.".format(image))
         errors = errors + 1
     if success is 1:
         sizeImg = cv2.imread(img)
         size = sizeImg.shape
         dimensions = (size[1], size[0])
+    sys.stdout.write("\r{:02d} of {} | {} Completed        ".format(count, len(os.listdir(imageDir)), image))
+    sys.stdout.flush()
+    count = count + 1
 
-print("--- Corner Detection Results ---\nSuccess: {}\nFail: {}\n".format(success, errors))
+print("\n\n--- Corner Detection Results ---\nSuccess: {}\nFail: {}\n".format(success, errors))
 
 # Convert to Numpy Arrays
 oPts = numpy.array(objectPoints)
