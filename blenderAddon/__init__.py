@@ -3,6 +3,9 @@ from .trackExport import TrackerExporter
 from .solverImport import SolverImporter
 
 import bpy
+import os
+import sys
+import subprocess
 
 bl_info = {
     "name": "mocapMath Utility",
@@ -23,9 +26,10 @@ class MocapSolver(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return False
+        return True
 
     def execute(self, context):
+        subprocess.call(os.path.join(sys.path[0], 'mocapSolver.exe'))
         return {'FINISHED'}
 
 class mocapMathPanel(bpy.types.Panel):
