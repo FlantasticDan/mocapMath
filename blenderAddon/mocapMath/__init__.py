@@ -1,13 +1,15 @@
+import bpy
+import os
+import sys
+
 from .cameraExport import CameraExporter
 from .trackExport import TrackerExporter
 from .solverImport import SolverImporter
 
-import bpy
-
 bl_info = {
     "name": "mocapMath Utility",
     "author": "Daniel Flanagan",
-    "version": (0, 0, 1),
+    "version": (0, 0, 2),
     "blender": (2, 80, 0),
     "description": "Utility to bridge Blender to mocapMath.",
     "warning": "[BETA] Dependent on external application, Windows 10 only.",
@@ -23,9 +25,10 @@ class MocapSolver(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return False
+        return True
 
     def execute(self, context):
+        os.startfile(os.path.join(sys.path[2], "mocapMath", "mocapSolver.exe"))
         return {'FINISHED'}
 
 class mocapMathPanel(bpy.types.Panel):

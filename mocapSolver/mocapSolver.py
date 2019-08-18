@@ -5,12 +5,33 @@
 import math
 import tkinter as tk
 from tkinter import filedialog
+import os
+import sys
 import numpy as np
 import mathutils
+
+# File Management
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 # configure UI to hide default window
 root = tk.Tk()
 root.withdraw()
+root.iconbitmap(default=resource_path("redTri.ico"))
+
+# UI Instructions
+readme = open(resource_path("solverReadme.txt"))
+for instruction in readme:
+    print(instruction[:-1])
+readme.close()
+input("\nPress Enter to continue...")
+
 
 # prompt for data exports
 C1_CAM = open(filedialog.askopenfilename(title="Camera 1 | CAMERA DATA"))
@@ -330,13 +351,14 @@ for joint in JOINTS:
             else:
                 lastFrame = lineCross(markers[0], markers[1], w-1, A_CAM, B_CAM, A_TRACK, B_TRACK)
                 thisFrame = lineCross(markers[0], markers[1], w, A_CAM, B_CAM, A_TRACK, B_TRACK)
-                new_X = (thisFrame[0] - lastFrame [0]) + EXPORT[joint][w-1][0]
-                new_Y = (thisFrame[1] - lastFrame [1]) + EXPORT[joint][w-1][1]
-                new_Z = (thisFrame[2] - lastFrame [2]) + EXPORT[joint][w-1][2]
+                new_X = (thisFrame[0] - lastFrame[0]) + EXPORT[joint][w-1][0]
+                new_Y = (thisFrame[1] - lastFrame[1]) + EXPORT[joint][w-1][1]
+                new_Z = (thisFrame[2] - lastFrame[2]) + EXPORT[joint][w-1][2]
                 EXPORT[joint][w] = (new_X, new_Y, new_Z)
 
-
 # export coordinate data
+print("\nSolve Complete!  Choose a directory to export solve, but DO NOT change the file name!")
+input("Press Enter to continue...")
 exportPath = filedialog.asksaveasfilename(initialfile="mocapSolved.txt")
 with open(exportPath, "x") as dataFile:
     dataFile.write("SOLVED DATA EXPORT for {} and {} \n\n".format(A_CAM['clip'], B_CAM['clip']))
@@ -349,3 +371,5 @@ with open(exportPath, "x") as dataFile:
                                                                EXPORT[solve][keyframe][0],
                                                                EXPORT[solve][keyframe][1],
                                                                EXPORT[solve][keyframe][2]))
+print("\nSolve Exported to {}.".format(exportPath))
+input("Press Enter to exit...")
