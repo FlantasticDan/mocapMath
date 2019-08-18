@@ -28,7 +28,7 @@ class MocapSolver(bpy.types.Operator):
         return True
 
     def execute(self, context):
-        os.startfile(os.path.join(sys.path[2], "blenderAddon", "mocapSolver.exe"))
+        os.startfile(os.path.join(sys.path[2], "mocapMath", "mocapSolver.exe"))
         return {'FINISHED'}
 
 class mocapMathPanel(bpy.types.Panel):
