@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import filedialog
-import sys
+import lox
 import cv2
 import numpy
 
@@ -29,7 +29,8 @@ def makeChessboard(col, row):
 
     return chessboard
 
-def detectCorners(imagePath):
+@lox.thread(8)
+def detectCorners(imagePath, imgFile):
     imgC = cv2.imread(imagePath)
     found, intersects = cv2.findChessboardCorners(imgC, PATTERN, flags=cv2.CALIB_CB_FAST_CHECK)
 
@@ -40,8 +41,8 @@ def detectCorners(imagePath):
             for intersect in group:
                 corners.append((intersect[0], intersect[1]))
     else:
-        raise Exception
-    
+        return [False, imgFile]
+
     return corners
 
 # Variables for Camera Calibration from Corner Detection
@@ -51,33 +52,35 @@ imgPoints = []
 success = 0
 errors = 0
 
-# Chessboard Corner Detection
-count = 1
+# Start Threads for Corner Detection
 for image in os.listdir(imageDir):
     img = os.path.join(imageDir, image)
-    try:
-        foundPoints = detectCorners(img)
-        imgPoints.append(foundPoints)
-        objectPoints.append(BOARD)
-        success = success + 1
-    except Exception:
-        print("\n{} has errored.".format(image))
-        errors = errors + 1
-    if success is 1:
-        sizeImg = cv2.imread(img)
-        size = sizeImg.shape
-        dimensions = (size[1], size[0])
-    sys.stdout.write("\r{:02d} of {} | {} Completed        ".format(count, len(os.listdir(imageDir)), image))
-    sys.stdout.flush()
-    count = count + 1
+    detectCorners.scatter(img, image)
 
-print("\n\n--- Corner Detection Results ---\nSuccess: {}\nFail: {}\n".format(success, errors))
+# Collect and Verify Corner Data from Threads
+imgProcess = detectCorners.gather()
+
+for result in imgProcess:
+    if result[0] is not False:
+        imgPoints.append(result)
+        objectPoints.append(BOARD)
+        success += 1
+    else:
+        errors += 1
+        print("{} has errored.".format(result[1]))
+
+print("\n--- Corner Detection Results ---\nSuccess: {}\nFail: {}\n".format(success, errors))
 
 # Convert to Numpy Arrays
 oPts = numpy.array(objectPoints)
 iPts = numpy.array(imgPoints)
 objects = oPts.astype('float32')
 images = iPts.astype('float32')
+
+# Detect Image Dimensions
+sizeImg = cv2.imread(os.path.join(imageDir, os.listdir(imageDir)[0]))
+size = sizeImg.shape
+dimensions = (size[1], size[0])
 
 # Camera Matrix Calculations
 initialMatrix = cv2.initCameraMatrix2D(objects, images, dimensions)
@@ -91,4 +94,4 @@ fov = [None, None]
 fov[0], fov[1], focal, principal, ratio = cv2.calibrationMatrixValues(matrix, dimensions,
                                                                       SENSOR[0], SENSOR[1])
 
-print("Focal Length: {:.4f} mm".format(focal))
+print("Focal Length: {:.4f} mm\n".format(focal))
