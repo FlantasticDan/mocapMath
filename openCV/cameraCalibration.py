@@ -67,7 +67,7 @@ for result in imgProcess:
         success += 1
     else:
         errors += 1
-        print("{} has errored.".format(result[1]))
+        print("{} failed.".format(result[1]))
 
 print("\n--- Corner Detection Results ---\nSuccess: {}\nFail: {}\n".format(success, errors))
 
