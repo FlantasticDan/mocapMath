@@ -1,4 +1,5 @@
 import os
+import sys
 import tkinter as tk
 from tkinter import filedialog
 import lox
@@ -11,6 +12,8 @@ root.withdraw()
 
 imageDir = filedialog.askdirectory(title="Select Directory")
 
+COUNT = 0
+QUENE = len(os.listdir(imageDir))
 PATTERN = (9, 7)
 SENSOR = (23.5, 15.6) # Nikon D5300
 #SENSOR = (7.06, 5.295) # Pixel 2 XL
@@ -31,6 +34,8 @@ def makeChessboard(col, row):
 
 @lox.thread(8)
 def detectCorners(imagePath, imgFile):
+    global COUNT
+
     imgC = cv2.imread(imagePath)
     found, intersects = cv2.findChessboardCorners(imgC, PATTERN, flags=cv2.CALIB_CB_FAST_CHECK)
 
@@ -40,10 +45,15 @@ def detectCorners(imagePath, imgFile):
         for group in intersects:
             for intersect in group:
                 corners.append((intersect[0], intersect[1]))
+        COUNT += 1
+        sys.stdout.write("\r{:02d} of {} | {} Processed        ".format(COUNT, QUENE, imgFile))
+        sys.stdout.flush()
+        return corners
     else:
+        COUNT += 1
+        sys.stdout.write("\r{:02d} of {} | {} Failed        ".format(COUNT, QUENE, imgFile))
+        sys.stdout.flush()
         return [False, imgFile]
-
-    return corners
 
 # Variables for Camera Calibration from Corner Detection
 BOARD = makeChessboard(PATTERN[0], PATTERN[1])
@@ -59,6 +69,8 @@ for image in os.listdir(imageDir):
 
 # Collect and Verify Corner Data from Threads
 imgProcess = detectCorners.gather()
+
+print("")
 
 for result in imgProcess:
     if result[0] is not False:
