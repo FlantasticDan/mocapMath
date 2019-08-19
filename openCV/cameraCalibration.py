@@ -32,7 +32,9 @@ def makeChessboard(col, row):
 
     return chessboard
 
-@lox.thread(8)
+thread = int(os.cpu_count() / 2)
+
+@lox.thread(thread)
 def detectCorners(imagePath, imgFile):
     global COUNT
 
