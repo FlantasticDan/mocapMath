@@ -1,5 +1,6 @@
 import os
 import sys
+import csv
 import tkinter as tk
 from tkinter import filedialog
 import lox
@@ -10,13 +11,29 @@ import numpy
 root = tk.Tk()
 root.withdraw()
 
+# File Management
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+# Import Sensor Database
+SENSORS = []
+with open(resource_path("./sensors.csv"), newline='') as database:
+    data = csv.reader(database)
+    for sensor in data:
+        SENSORS.append(sensor)
+SENSORS.pop(0)
+
 imageDir = filedialog.askdirectory(title="Select Directory")
 
 COUNT = 0
 QUENE = len(os.listdir(imageDir))
 PATTERN = (9, 7)
-SENSOR = (23.5, 15.6) # Nikon D5300
-#SENSOR = (7.06, 5.295) # Pixel 2 XL
 
 def makeChessboard(col, row):
     x = 0
@@ -91,10 +108,30 @@ iPts = numpy.array(imgPoints)
 objects = oPts.astype('float32')
 images = iPts.astype('float32')
 
-# Detect Image Dimensions
+# User Selects Camera Sensor
+print("\n--- Camera Sensor Sizes ---")
+print("## |  Width | Height | Cameras")
+for config in SENSORS:
+    print("{: 2d} | {: 6.2f} | {: 6.2f} | {}".format(int(config[0]), float(config[1]), float(config[2]), config[3]))
+sensorSelection = input("\nWhich ## corresponds to your camera's sensor? ")
+while True:
+    try:
+        SENSORS[int(sensorSelection)]
+        break
+    except IndexError:
+        sensorSelection = input("[!] (Invalid Input) Which ## corresponds to your camera's sensor?")
+SENSOR = (float(SENSORS[int(sensorSelection) - 1][1]), float(SENSORS[int(sensorSelection) - 1][2]))
+
+# Detect Image Dimensions and Adjust Sensor if Neccessary
 sizeImg = cv2.imread(os.path.join(imageDir, os.listdir(imageDir)[0]))
 size = sizeImg.shape
 dimensions = (size[1], size[0])
+if size[1] / size[0] != SENSOR[0] / SENSOR[1]:
+    SENSOR = (SENSOR[0], (size[0] * SENSOR[0]) / size[1])
+    if SENSOR[1] > float(SENSORS[int(sensorSelection) - 1][2]):
+        sensorH = float(SENSORS[int(sensorSelection) - 1][2])
+        SENSOR = ((sensorH * size[1]) / size[0], sensorH)
+    print("Effective Sensor Size Calculated as {:4.2f} mm x {:4.2f} mm".format(SENSOR[0], SENSOR[1]))
 
 # Camera Matrix Calculations
 initialMatrix = cv2.initCameraMatrix2D(objects, images, dimensions)
@@ -102,7 +139,7 @@ error, matrix, distortion, rotation, translation = cv2.calibrateCamera(objects, 
                                                                        dimensions, initialMatrix,
                                                                        None)
 
-print("--- Camera Matrix Calculations ---\nError: {:.4f} px".format(error))
+print("\n\n--- Camera Matrix Calculations ---\nError: {:.4f} px".format(error))
 
 fov = [None, None]
 fov[0], fov[1], focal, principal, ratio = cv2.calibrationMatrixValues(matrix, dimensions,
