@@ -119,17 +119,36 @@ while True:
         SENSORS[int(sensorSelection)]
         break
     except IndexError:
-        sensorSelection = input("[!] (Invalid Input) Which ## corresponds to your camera's sensor?")
-SENSOR = (float(SENSORS[int(sensorSelection) - 1][1]), float(SENSORS[int(sensorSelection) - 1][2]))
+        sensorSelection = input("[!] (Invalid Input) Which ## corresponds to your camera's sensor? ")
+
+if int(sensorSelection) != 0:
+    SENSOR = (float(SENSORS[int(sensorSelection) - 1][1]), float(SENSORS[int(sensorSelection) - 1][2]))
+else:
+    customSensorX = input("Custom Sensor Size Width in mm: ")
+    while True:
+        try:
+            customSensorX = float(customSensorX)
+            break
+        except ValueError:
+            customSensorX = input("[!] (Invalid Input) Custom Sensor Size Width in mm: ")
+    customSensorY = input("Custom Sensor Size Height in mm: ")
+    while True:
+        try:
+            customSensorY = float(customSensorY)
+            break
+        except ValueError:
+            customSensorY = input("[!] (Invalid Input) Custom Sensor Size Height in mm: ")
+    SENSOR = (customSensorX, customSensorY)
 
 # Detect Image Dimensions and Adjust Sensor if Neccessary
 sizeImg = cv2.imread(os.path.join(imageDir, os.listdir(imageDir)[0]))
 size = sizeImg.shape
 dimensions = (size[1], size[0])
+rawSensor = SENSOR
 if size[1] / size[0] != SENSOR[0] / SENSOR[1]:
     SENSOR = (SENSOR[0], (size[0] * SENSOR[0]) / size[1])
-    if SENSOR[1] > float(SENSORS[int(sensorSelection) - 1][2]):
-        sensorH = float(SENSORS[int(sensorSelection) - 1][2])
+    if SENSOR[1] > rawSensor[1]:
+        sensorH = rawSensor[1]
         SENSOR = ((sensorH * size[1]) / size[0], sensorH)
     print("Effective Sensor Size Calculated as {:4.2f} mm x {:4.2f} mm".format(SENSOR[0], SENSOR[1]))
 
