@@ -80,8 +80,13 @@ for rawMarker in squares:
     markers.append(warped)
 
 # DEV CODE #
-# Show Found Markers
-for m, mark in enumerate(markers):
-    cv2.imshow("Marker {}".format(m), mark)
 
-cv2.waitKey(0)
+# Show Found Markers
+# for m, mark in enumerate(markers):
+#     cv2.imshow("Marker {}".format(m), mark)
+# cv2.waitKey(0)
+
+# Export Intermediate Images
+# exportPath = filedialog.askdirectory(title="Output Directory")
+# cv2.imwrite(exportPath + "\Canny.jpg", canny)
+# cv2.imwrite(exportPath + "\Mask.jpg", mask)
