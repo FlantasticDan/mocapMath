@@ -4,6 +4,7 @@ import os
 import sys
 import cv2
 import numpy as np
+from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 
 # Configure Tkinter
@@ -39,12 +40,19 @@ count = -1
 for s, shape in enumerate(contour[0]):
     peri = cv2.arcLength(shape, True)
     corners = cv2.approxPolyDP(shape, 0.02 * peri, True)
-    if len(corners) is 4 and peri > 50: # check quadrangle is of useable size
-        count += 1
-        squares.append([])
-        squares[count] = []
-        for pt in corners:
-            squares[count].append([pt[0][0], pt[0][1]])
+    if len(corners) is 4 and peri > 50: # check shape is a quadrangle of useable size
+        a = Point(corners[0][0][0], corners[0][0][1])
+        b = Point(corners[1][0][0], corners[1][0][1])
+        c = Point(corners[2][0][0], corners[2][0][1])
+        ab = a.distance(b)
+        bc = b.distance(c)
+        lineRatio = max((ab, bc)) / min ((ab, bc))
+        if lineRatio < 2: # check that quadrangle is likely a square
+            count += 1
+            squares.append([])
+            squares[count] = []
+            for pt in corners:
+                squares[count].append([pt[0][0], pt[0][1]])
 
 # Sort for Interior Squares
 removal = []
@@ -72,10 +80,10 @@ for index in removal:
 
 # Create Marker Crops
 size = 250
-square = np.array([[0,0], [0, size], [size, size], [size, 0]], dtype = "float32")
+square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
 markers = []
 for rawMarker in squares:
-    perspective = cv2.getPerspectiveTransform(np.array(rawMarker, dtype = "float32"), square)
+    perspective = cv2.getPerspectiveTransform(np.array(rawMarker, dtype="float32"), square)
     warped = cv2.warpPerspective(img, perspective, (size, size))
     markers.append(warped)
 
