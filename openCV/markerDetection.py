@@ -25,6 +25,8 @@ def resource_path(relative_path):
 imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
 img = cv2.imread(imageFile, flags=cv2.IMREAD_COLOR)
 
+## MARKER DETECTION ##
+
 # Image Pre-Processing
 grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 grey_inv = cv2.bitwise_not(grey)
@@ -79,7 +81,7 @@ for index in removal:
     del squares[index]
 
 # Create Marker Crops
-size = 250
+size = 96 # must be a multiple of 8
 square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
 markers = []
 for rawMarker in squares:
@@ -87,7 +89,33 @@ for rawMarker in squares:
     warped = cv2.warpPerspective(img, perspective, (size, size))
     markers.append(warped)
 
-# DEV CODE #
+## MARKER IDENTIFICATION ##
+
+# Create bits
+bitSize = int(size / 8)
+markerIDs = []
+
+# Loop through markers
+for marker in markers:
+    tag = np.empty([8, 8, 4])
+    yChunk = 0
+    while yChunk < 8:
+        xChunk = 0
+        while xChunk < 8:
+            tag[yChunk, xChunk] = cv2.mean(marker[(yChunk*bitSize) : ((yChunk+1)*bitSize), # Average each bit
+                                                  (xChunk*bitSize) : ((xChunk+1)*bitSize)])
+            xChunk += 1
+        yChunk += 1
+    
+    # Threshold bits per channel BGR
+    cleanTag = np.delete(tag, 3, 2)
+    cleanTag = np.array(cleanTag, dtype="uint8")
+    _, blue = cv2.threshold(cleanTag[:, :, 0], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, green = cv2.threshold(cleanTag[:, :, 1], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, red = cv2.threshold(cleanTag[:, :, 2], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+
+## DEV CODE ##
 
 # Show Found Markers
 # for m, mark in enumerate(markers):
