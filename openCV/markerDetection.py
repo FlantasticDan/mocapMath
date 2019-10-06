@@ -110,9 +110,49 @@ for marker in markers:
     # Threshold bits per channel BGR
     cleanTag = np.delete(tag, 3, 2)
     cleanTag = np.array(cleanTag, dtype="uint8")
+    grayTag = cv2.cvtColor(cleanTag, cv2.COLOR_BGR2GRAY)
+    _, gray = cv2.threshold(grayTag, 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     _, blue = cv2.threshold(cleanTag[:, :, 0], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     _, green = cv2.threshold(cleanTag[:, :, 1], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     _, red = cv2.threshold(cleanTag[:, :, 2], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Decode Markers #
+    # Check Permimeter Bits
+    barrier = True
+    for bit in gray[0]:
+        if bit != 0:
+            barrier = False
+            break
+    if barrier is True:
+        for bit in gray[7]:
+            if bit != 0:
+                barrier = False
+                break
+    count = 1
+    while count < 7:
+        if gray[count][0] != 0 or gray[count][7] != 0:
+            barrier = False
+            break
+        count += 1
+
+    # Check for Notch
+    if barrier is True:
+        rotation = 0
+        notch = False
+        while notch is False and rotation < 4:
+            if gray[1][1] == 0 and gray[1][2] == 0 and gray[2][1] == 0:
+                notch = True
+                break
+            else:
+                gray = np.rot90(gray)
+                rotation += 1
+
+    # Check for Parity Bit
+    if barrier is True and notch is True:
+        if gray[5][6] == 1:
+            parity = True
+        else:
+            parity = False
 
 
 ## DEV CODE ##
