@@ -21,6 +21,25 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+# Marker Pattern Importer
+def importPattern(filepath):
+    markerPattern = ""
+    with open(resource_path(filepath), "r") as pattern:
+        for line in pattern:
+            markerPattern += line.rstrip('\n') + " "
+    patternList = markerPattern.split(" ")
+    del patternList[64]
+    shape = np.reshape(patternList, (8, 8))
+    return shape.astype(dtype="uint8")
+
+# Import Marker Patterns
+CIRCLE = importPattern("markerArrays\circle.txt")
+LINE = importPattern("markerArrays\line.txt")
+SLASH = importPattern("markerArrays\slash.txt")
+SQUARE = importPattern("markerArrays\square.txt")
+TRIANGLE = importPattern("markerArrays\\triangle.txt")
+Y = importPattern("markerArrays\y.txt")
+
 # Declare Image to be Analyzed
 imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
 img = cv2.imread(imageFile, flags=cv2.IMREAD_COLOR)
