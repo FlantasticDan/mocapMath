@@ -50,10 +50,10 @@ def checkPattern(mystery):
     return False
 
 # Color Finder
-def findColor(blue, green, red):
-    r = red[3][3]
-    g = green[3][3]
-    b = blue[3][3]
+def findColor(blueChannel, greenChannel, redChannel):
+    r = redChannel[3][3]
+    g = greenChannel[3][3]
+    b = blueChannel[3][3]
 
     if r == 1:
         if b == 1:
@@ -78,29 +78,35 @@ def findColor(blue, green, red):
             else:
                 return False
 
-
 # Declare Image to be Analyzed
 imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
-img = cv2.imread(imageFile, flags=cv2.IMREAD_COLOR)
-
-## MARKER DETECTION ##
 
 # Image Pre-Processing
-grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-grey_inv = cv2.bitwise_not(grey)
-threshold, mask = cv2.threshold(grey_inv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+def imageProcessing(imgPath):
 
-# Shape Detection
-canny = cv2.Canny(mask, 100, 200)
-contour = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # Pre-Processing
+    img = cv2.imread(imgPath, flags=cv2.IMREAD_COLOR)
+    grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    grey_inv = cv2.bitwise_not(grey)
+    _, mask = cv2.threshold(grey_inv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-# Identify Squares from Shapes
-squares = []
-count = -1
-for s, shape in enumerate(contour[0]):
+    # Shape Detection
+    contour = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    return contour[0], img
+
+# Find Center of Quadrangles
+def findCenter(a, b, c, d):
+    ac = LineString([a, c])
+    bd = LineString([b, d])
+    center = ac.intersection(bd)
+    return (center.x, center.y)
+
+# Check for Square
+def isSquare(shape, minPerimeter=50):
     peri = cv2.arcLength(shape, True)
     corners = cv2.approxPolyDP(shape, 0.02 * peri, True)
-    if len(corners) is 4 and peri > 50: # check shape is a quadrangle of useable size
+    if len(corners) is 4 and peri > minPerimeter: # check shape is a quadrangle of useable size
         a = Point(corners[0][0][0], corners[0][0][1])
         b = Point(corners[1][0][0], corners[1][0][1])
         c = Point(corners[2][0][0], corners[2][0][1])
@@ -109,138 +115,189 @@ for s, shape in enumerate(contour[0]):
         bc = b.distance(c)
         lineRatio = max((ab, bc)) / min((ab, bc))
         if lineRatio < 2: # check that quadrangle is likely a square
-            count += 1
+            center = findCenter(a, b, c, d)
+            return corners, center
+    return False, False
+
+# Identify Squares from Shapes
+def findSquares(contour):
+    squares = []
+    c = -1
+    for shape in contour:
+        corners, center = isSquare(shape)
+        if corners is not False:
+            c += 1
             squares.append([])
-            squares[count] = {}
-            squares[count]['corners'] = []
+            squares[c] = {}
+            squares[c]['corners'] = []
             for pt in corners:
-                squares[count]['corners'].append([pt[0][0], pt[0][1]])
-        # Calculate Center of Square
-        ac = LineString([a, c])
-        bd = LineString([b, d])
-        center = ac.intersection(bd)
-        center = (center.x, center.y)
-        squares[count]['center'] = center
+                squares[c]['corners'].append([pt[0][0], pt[0][1]])
+            squares[c]['center'] = center
+    return squares
 
 # Sort for Interior Squares
-removal = []
-for sq, _ in enumerate(squares):
-    test = Polygon([(squares[sq]['corners'][0][0], squares[sq]['corners'][0][1]),
-                    (squares[sq]['corners'][1][0], squares[sq]['corners'][1][1]),
-                    (squares[sq]['corners'][2][0], squares[sq]['corners'][2][1]),
-                    (squares[sq]['corners'][3][0], squares[sq]['corners'][3][1])])
-    for bound, _ in enumerate(squares):
-        if bound == sq:
-            pass
-        else:
-            bounding = Polygon([(squares[bound]['corners'][0][0], squares[bound]['corners'][0][1]),
-                                (squares[bound]['corners'][1][0], squares[bound]['corners'][1][1]),
-                                (squares[bound]['corners'][2][0], squares[bound]['corners'][2][1]),
-                                (squares[bound]['corners'][3][0], squares[bound]['corners'][3][1])])
-            if test.contains(bounding):
-                removal.append(sq)
-                break
+def removeExteriorSquares(squares):
+    removal = []
 
-# Delete all Exterior Squares
-removal.sort(reverse = True)
-for index in removal:
-    del squares[index]
+    # Check for Squares contatined in other Squares
+    for sq, _ in enumerate(squares):
+        test = Polygon([(squares[sq]['corners'][0][0], squares[sq]['corners'][0][1]),
+                        (squares[sq]['corners'][1][0], squares[sq]['corners'][1][1]),
+                        (squares[sq]['corners'][2][0], squares[sq]['corners'][2][1]),
+                        (squares[sq]['corners'][3][0], squares[sq]['corners'][3][1])])
+        for bound, _ in enumerate(squares):
+            if bound == sq:
+                pass
+            else:
+                bounding = Polygon([(squares[bound]['corners'][0][0], squares[bound]['corners'][0][1]),
+                                    (squares[bound]['corners'][1][0], squares[bound]['corners'][1][1]),
+                                    (squares[bound]['corners'][2][0], squares[bound]['corners'][2][1]),
+                                    (squares[bound]['corners'][3][0], squares[bound]['corners'][3][1])])
+                if test.contains(bounding):
+                    removal.append(sq)
+                    break
+
+    # Delete all Exterior Squares
+    removal.sort(reverse=True)
+    for index in removal:
+        del squares[index]
+    
+    return squares
 
 # Create Marker Crops
-size = 96 # must be a multiple of 8
-square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
-markers = []
-for rawMarker in squares:
-    perspective = cv2.getPerspectiveTransform(np.array(rawMarker['corners'], dtype="float32"), square)
-    warped = cv2.warpPerspective(img, perspective, (size, size))
-    markers.append((warped, rawMarker['center']))
+def markerDeformer(squares, img, size=96):
+    square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
+    markers = []
+    for rawMarker in squares:
+        perspective = cv2.getPerspectiveTransform(np.array(rawMarker['corners'], dtype="float32"), square)
+        warped = cv2.warpPerspective(img, perspective, (size, size))
+        markers.append((warped, rawMarker['center']))
+    
+    return markers # (marker image, center point of marker)
+
+## MARKER DETECTION ##
+def findMarkers(imagePath):
+    imageContours, image = imageProcessing(imagePath)
+    foundSquares = findSquares(imageContours)
+    sortedSquares = removeExteriorSquares(foundSquares)
+    foundMarkers = markerDeformer(sortedSquares, image)
+
+    return foundMarkers
 
 ## MARKER IDENTIFICATION ##
 
-# Create bits
-bitSize = int(size / 8)
-markerIDs = []
-
-# Loop through markers
-for i, marker in enumerate(markers):
+# Create Marker Binary Maps
+def createMarkerBinaryMaps(warpedMarker, bitSize=12):
     tag = np.empty([8, 8, 4])
     yChunk = 0
     while yChunk < 8:
         xChunk = 0
-        while xChunk < 8:
-            tag[yChunk, xChunk] = cv2.mean(marker[0][(yChunk*bitSize) : ((yChunk+1)*bitSize), # Average each bit
-                                                     (xChunk*bitSize) : ((xChunk+1)*bitSize)])
+        while xChunk < 8: # Average each channel of each bit
+            tag[yChunk, xChunk] = cv2.mean(warpedMarker[(yChunk*bitSize) : ((yChunk+1)*bitSize),
+                                                           (xChunk*bitSize) : ((xChunk+1)*bitSize)])
             xChunk += 1
         yChunk += 1
 
-    # Threshold bits per channel BGR
+    # Threshold Bits per Channel BGR
     cleanTag = np.delete(tag, 3, 2)
     cleanTag = np.array(cleanTag, dtype="uint8")
     grayTag = cv2.cvtColor(cleanTag, cv2.COLOR_BGR2GRAY)
-    _, gray = cv2.threshold(grayTag, 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    _, blue = cv2.threshold(cleanTag[:, :, 0], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    _, green = cv2.threshold(cleanTag[:, :, 1], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    _, red = cv2.threshold(cleanTag[:, :, 2], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, grayBinary = cv2.threshold(grayTag, 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, blueBinary = cv2.threshold(cleanTag[:, :, 0], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, greenBinary = cv2.threshold(cleanTag[:, :, 1], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, redBinary = cv2.threshold(cleanTag[:, :, 2], 128, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # Decode Markers #
-    # Check Permimeter Bits
-    barrier = True
-    for bit in gray[0]:
+    return grayBinary, blueBinary, greenBinary, redBinary
+
+def isBoxed(grayBinary):
+    for bit in grayBinary[0]:
         if bit != 0:
-            barrier = False
-            break
-    if barrier is True:
-        for bit in gray[7]:
-            if bit != 0:
-                barrier = False
-                break
-    count = 1
-    while count < 7:
-        if gray[count][0] != 0 or gray[count][7] != 0:
-            barrier = False
-            break
-        count += 1
+            return False
+    for bit in grayBinary[7]:
+        if bit != 0:
+            return False
+    c = 1
+    while c < 7:
+        if grayBinary[c][0] != 0 or grayBinary[c][7] != 0:
+            return False
+        c += 1
+    
+    return True
+
+def isNotched(grayBinary):
+    rot = 0
+    while rot < 4:
+        if grayBinary[1][1] == 0 and grayBinary[1][2] == 0 and grayBinary[2][1] == 0:
+            return True, rot, grayBinary
+        else:
+            grayBinary = np.rot90(grayBinary)
+            rot += 1
+    return False, False, False
+
+def hasParity(grayBinary, rotation):
+    if grayBinary[5][6] == 1:
+        return True, rotation, grayBinary
+    else:
+        grayBinary = np.rot90(grayBinary)
+        notch, rot, grayBinary = isNotched(grayBinary)
+        if notch is True and grayBinary[5][6] == 1:
+            return True, rotation + rot, grayBinary
+    return False, False, False
+
+def isAMarker(grayBinary):
+    # Check Permimeter Bits
+    barrier = isBoxed(grayBinary)
 
     # Check for Notch
     if barrier is True:
-        rotation = 0
-        notch = False
-        while notch is False and rotation < 4:
-            if gray[1][1] == 0 and gray[1][2] == 0 and gray[2][1] == 0:
-                notch = True
-                break
-            else:
-                gray = np.rot90(gray)
-                rotation += 1
+        notch, rot, grayBinary = isNotched(grayBinary)
+    else:
+        return False, False, False
+    
+    # Check Parity Bit
+    if notch is True:
+        parity, rot, grayBinary = hasParity(grayBinary, rot)
 
-    # Check for Parity Bit
-    if barrier is True and notch is True:
-        parity = bool(gray[5][6] == 1)
+    if parity is True:
+        return True, rot, grayBinary
 
-    # Confirm Markerness of Marker
-    isMarker = False
-    if barrier is True and notch is True and parity is True:
-        isMarker = True
+    return False, False, False
 
-    if isMarker is True:
-        # Determine Pattern
-        pattern = checkPattern(gray)
+def identifyMarker(unkownMarker):
+    gray, blue, green, red = createMarkerBinaryMaps(unkownMarker[0])
+    isMarker, rotation, gray = isAMarker(gray)
+
+    if isMarker is False:
+        return None
+    
+    # Pattern Identification
+    pattern = checkPattern(gray)
+    if pattern is False:
+        red = np.rot90(red, rotation)
+        pattern = checkPattern(red)
         if pattern is False:
-            red = np.rot90(red, rotation)
-            pattern = checkPattern(red)
+            green = np.rot90(green, rotation)
+            pattern = checkPattern(green)
             if pattern is False:
-                green = np.rot90(green, rotation)
-                pattern = checkPattern(green)
-                if pattern is False:
-                    blue = np.rot90(blue, rotation)
-                    pattern = checkPattern(blue)
-        # Determine Color
-        color = findColor(blue, green, red)
+                blue = np.rot90(blue, rotation)
+                pattern = checkPattern(blue)
 
-        # Append Color, Pattern, and Center of Marker
-        markerIDs.append((color, pattern, marker[1]))
+    # Determine Color
+    color = findColor(blue, green, red)
+
+    return color, pattern, unkownMarker[1]
+
+def markerID(imagePath):
+    markerIDs = []
+    markers = findMarkers(imagePath)
+    for marker in markers:
+        markerIDs.append(identifyMarker(marker))
+    return markerIDs
 
 ## DEV CODE ##
+
+# Print Array of Marker IDs
+print(markerID(imageFile))
 
 # Show Found Markers
 # for m, mark in enumerate(markers):
