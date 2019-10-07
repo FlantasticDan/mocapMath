@@ -100,7 +100,10 @@ def findCenter(a, b, c, d):
     ac = LineString([a, c])
     bd = LineString([b, d])
     center = ac.intersection(bd)
-    return (center.x, center.y)
+    try:
+        return (center.x, center.y)
+    except AttributeError:
+        return None
 
 # Check for Square
 def isSquare(shape, minPerimeter=50):
@@ -171,7 +174,7 @@ def markerDeformer(squares, img, size=96):
     for rawMarker in squares:
         perspective = cv2.getPerspectiveTransform(np.array(rawMarker['corners'], dtype="float32"), square)
         warped = cv2.warpPerspective(img, perspective, (size, size))
-        markers.append((warped, rawMarker['center']))
+        markers.append((warped, rawMarker['center'], rawMarker['corners']))
     
     return markers # (marker image, center point of marker)
 
@@ -285,7 +288,7 @@ def identifyMarker(unkownMarker):
     # Determine Color
     color = findColor(blue, green, red)
 
-    return color, pattern, unkownMarker[1]
+    return color, pattern, unkownMarker[1], unkownMarker[2] # (color, pattern, center, [corners])
 
 def markerID(imagePath):
     markerIDs = []
@@ -294,17 +297,37 @@ def markerID(imagePath):
         markerIDs.append(identifyMarker(marker))
     return markerIDs
 
+def getMarkerColor(marker):
+    colorStr = marker[0]
+    if colorStr == 'blue':
+        return (255, 0, 0)
+    elif colorStr == 'red':
+        return (0, 0, 255)
+    elif colorStr == 'green':
+        return (0, 255, 0)
+    elif colorStr == 'cyan':
+        return (255, 255, 0)
+    elif colorStr == 'yellow':
+        return (0, 255, 255)
+    elif colorStr == 'magenta':
+        return (255, 0, 255)
+    return (0, 0, 0)
+
+def drawMarkerID(imagePath, markers):
+    img = cv2.imread(imagePath)
+    for marker in markers:
+        if marker is not None:
+            corners = np.array([marker[3][0], marker[3][1], marker[3][2], marker[3][3]], np.int32)
+            cv2.polylines(img, [corners], True, getMarkerColor(marker), 10)
+            cv2.putText(img, "{}".format(marker[1]), (int(marker[2][0]), int(marker[2][1])), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 10)
+            cv2.putText(img, "{}".format(marker[1]), (int(marker[2][0]), int(marker[2][1])), cv2.FONT_HERSHEY_SIMPLEX, 2, getMarkerColor(marker), 4)
+    return img
+
 ## DEV CODE ##
 
 # Print Array of Marker IDs
-print(markerID(imageFile))
+# print(markerID(imageFile))
 
-# Show Found Markers
-# for m, mark in enumerate(markers):
-#     cv2.imshow("Marker {}".format(m), mark)
-# cv2.waitKey(0)
-
-# Export Intermediate Images
+# Export Images
 # exportPath = filedialog.askdirectory(title="Output Directory")
-# cv2.imwrite(exportPath + "\Canny.jpg", canny)
-# cv2.imwrite(exportPath + "\Mask.jpg", mask)
+# cv2.imwrite(exportPath + "\marked.jpg", drawMarkerID(imageFile, markerID(imageFile)))
