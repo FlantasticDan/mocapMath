@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
+from shapely.geometry import LineString
 
 # Configure Tkinter
 root = tk.Tk()
@@ -103,31 +104,39 @@ for s, shape in enumerate(contour[0]):
         a = Point(corners[0][0][0], corners[0][0][1])
         b = Point(corners[1][0][0], corners[1][0][1])
         c = Point(corners[2][0][0], corners[2][0][1])
+        d = Point(corners[3][0][0], corners[3][0][1])
         ab = a.distance(b)
         bc = b.distance(c)
-        lineRatio = max((ab, bc)) / min ((ab, bc))
+        lineRatio = max((ab, bc)) / min((ab, bc))
         if lineRatio < 2: # check that quadrangle is likely a square
             count += 1
             squares.append([])
-            squares[count] = []
+            squares[count] = {}
+            squares[count]['corners'] = []
             for pt in corners:
-                squares[count].append([pt[0][0], pt[0][1]])
+                squares[count]['corners'].append([pt[0][0], pt[0][1]])
+        # Calculate Center of Square
+        ac = LineString([a, c])
+        bd = LineString([b, d])
+        center = ac.intersection(bd)
+        center = (center.x, center.y)
+        squares[count]['center'] = center
 
 # Sort for Interior Squares
 removal = []
-for sq, square in enumerate(squares):
-    test = Polygon([(squares[sq][0][0], squares[sq][0][1]),
-                    (squares[sq][1][0], squares[sq][1][1]),
-                    (squares[sq][2][0], squares[sq][2][1]),
-                    (squares[sq][3][0], squares[sq][3][1])])
-    for bound, uh in enumerate(squares):
+for sq, _ in enumerate(squares):
+    test = Polygon([(squares[sq]['corners'][0][0], squares[sq]['corners'][0][1]),
+                    (squares[sq]['corners'][1][0], squares[sq]['corners'][1][1]),
+                    (squares[sq]['corners'][2][0], squares[sq]['corners'][2][1]),
+                    (squares[sq]['corners'][3][0], squares[sq]['corners'][3][1])])
+    for bound, _ in enumerate(squares):
         if bound == sq:
             pass
         else:
-            bounding = Polygon([(squares[bound][0][0], squares[bound][0][1]),
-                                (squares[bound][1][0], squares[bound][1][1]),
-                                (squares[bound][2][0], squares[bound][2][1]),
-                                (squares[bound][3][0], squares[bound][3][1])])
+            bounding = Polygon([(squares[bound]['corners'][0][0], squares[bound]['corners'][0][1]),
+                                (squares[bound]['corners'][1][0], squares[bound]['corners'][1][1]),
+                                (squares[bound]['corners'][2][0], squares[bound]['corners'][2][1]),
+                                (squares[bound]['corners'][3][0], squares[bound]['corners'][3][1])])
             if test.contains(bounding):
                 removal.append(sq)
                 break
@@ -142,9 +151,9 @@ size = 96 # must be a multiple of 8
 square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
 markers = []
 for rawMarker in squares:
-    perspective = cv2.getPerspectiveTransform(np.array(rawMarker, dtype="float32"), square)
+    perspective = cv2.getPerspectiveTransform(np.array(rawMarker['corners'], dtype="float32"), square)
     warped = cv2.warpPerspective(img, perspective, (size, size))
-    markers.append(warped)
+    markers.append((warped, rawMarker['center']))
 
 ## MARKER IDENTIFICATION ##
 
@@ -159,8 +168,8 @@ for i, marker in enumerate(markers):
     while yChunk < 8:
         xChunk = 0
         while xChunk < 8:
-            tag[yChunk, xChunk] = cv2.mean(marker[(yChunk*bitSize) : ((yChunk+1)*bitSize), # Average each bit
-                                                  (xChunk*bitSize) : ((xChunk+1)*bitSize)])
+            tag[yChunk, xChunk] = cv2.mean(marker[0][(yChunk*bitSize) : ((yChunk+1)*bitSize), # Average each bit
+                                                     (xChunk*bitSize) : ((xChunk+1)*bitSize)])
             xChunk += 1
         yChunk += 1
 
@@ -213,8 +222,8 @@ for i, marker in enumerate(markers):
     if barrier is True and notch is True and parity is True:
         isMarker = True
 
-    # Determine Pattern
     if isMarker is True:
+        # Determine Pattern
         pattern = checkPattern(gray)
         if pattern is False:
             red = np.rot90(red, rotation)
@@ -225,7 +234,11 @@ for i, marker in enumerate(markers):
                 if pattern is False:
                     blue = np.rot90(blue, rotation)
                     pattern = checkPattern(blue)
+        # Determine Color
         color = findColor(blue, green, red)
+
+        # Append Color, Pattern, and Center of Marker
+        markerIDs.append((color, pattern, marker[1]))
 
 ## DEV CODE ##
 
