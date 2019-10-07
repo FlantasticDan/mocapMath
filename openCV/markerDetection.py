@@ -33,12 +33,50 @@ def importPattern(filepath):
     return shape.astype(dtype="uint8")
 
 # Import Marker Patterns
-CIRCLE = importPattern("markerArrays\circle.txt")
-LINE = importPattern("markerArrays\line.txt")
-SLASH = importPattern("markerArrays\slash.txt")
-SQUARE = importPattern("markerArrays\square.txt")
-TRIANGLE = importPattern("markerArrays\\triangle.txt")
-Y = importPattern("markerArrays\y.txt")
+CIRCLE = (importPattern("markerArrays\circle.txt"), "circle")
+LINE = (importPattern("markerArrays\line.txt"), "line")
+SLASH = (importPattern("markerArrays\slash.txt"), "slash")
+SQUARE = (importPattern("markerArrays\square.txt"), "square")
+TRIANGLE = (importPattern("markerArrays\\triangle.txt"), "triangle")
+Y = (importPattern("markerArrays\y.txt"), "y")
+PATTERNS = (CIRCLE, LINE, SLASH, SQUARE, TRIANGLE, Y)
+
+# Pattern Tester
+def checkPattern(mystery):
+    for pattern in PATTERNS:
+        if np.array_equal(mystery, pattern[0]):
+            return pattern[1]
+    return False
+
+# Color Finder
+def findColor(blue, green, red):
+    r = red[3][3]
+    g = green[3][3]
+    b = blue[3][3]
+
+    if r == 1:
+        if b == 1:
+            if g == 0:
+                return "magenta"
+            else:
+                return False
+        else:
+            if g == 0:
+                return "red"
+            else:
+                return "yellow"
+    else:
+        if b == 1:
+            if g == 0:
+                return "blue"
+            else:
+                return "cyan"
+        else:
+            if g == 1:
+                return "green"
+            else:
+                return False
+
 
 # Declare Image to be Analyzed
 imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
@@ -115,7 +153,7 @@ bitSize = int(size / 8)
 markerIDs = []
 
 # Loop through markers
-for marker in markers:
+for i, marker in enumerate(markers):
     tag = np.empty([8, 8, 4])
     yChunk = 0
     while yChunk < 8:
@@ -125,7 +163,7 @@ for marker in markers:
                                                   (xChunk*bitSize) : ((xChunk+1)*bitSize)])
             xChunk += 1
         yChunk += 1
-    
+
     # Threshold bits per channel BGR
     cleanTag = np.delete(tag, 3, 2)
     cleanTag = np.array(cleanTag, dtype="uint8")
@@ -168,11 +206,26 @@ for marker in markers:
 
     # Check for Parity Bit
     if barrier is True and notch is True:
-        if gray[5][6] == 1:
-            parity = True
-        else:
-            parity = False
+        parity = bool(gray[5][6] == 1)
 
+    # Confirm Markerness of Marker
+    isMarker = False
+    if barrier is True and notch is True and parity is True:
+        isMarker = True
+
+    # Determine Pattern
+    if isMarker is True:
+        pattern = checkPattern(gray)
+        if pattern is False:
+            red = np.rot90(red, rotation)
+            pattern = checkPattern(red)
+            if pattern is False:
+                green = np.rot90(green, rotation)
+                pattern = checkPattern(green)
+                if pattern is False:
+                    blue = np.rot90(blue, rotation)
+                    pattern = checkPattern(blue)
+        color = findColor(blue, green, red)
 
 ## DEV CODE ##
 
