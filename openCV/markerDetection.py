@@ -78,9 +78,6 @@ def findColor(blueChannel, greenChannel, redChannel):
             else:
                 return False
 
-# Declare Image to be Analyzed
-imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
-
 # Image Pre-Processing
 def imageProcessing(imgPath):
 
@@ -265,6 +262,19 @@ def isAMarker(grayBinary):
 
     return False, False, False
 
+def findPattern(grayChannel, redChannel, greenChannel, blueChannel, rot):
+    pattern = checkPattern(grayChannel)
+    if pattern is False:
+        redChannel = np.rot90(redChannel, rot)
+        pattern = checkPattern(redChannel)
+        if pattern is False:
+            greenChannel = np.rot90(greenChannel, rot)
+            pattern = checkPattern(greenChannel)
+            if pattern is False:
+                blueChannel = np.rot90(blueChannel, rot)
+                pattern = checkPattern(blueChannel)
+    return pattern
+
 def identifyMarker(unkownMarker):
     gray, blue, green, red = createMarkerBinaryMaps(unkownMarker[0])
     isMarker, rotation, gray = isAMarker(gray)
@@ -273,16 +283,14 @@ def identifyMarker(unkownMarker):
         return None
     
     # Pattern Identification
-    pattern = checkPattern(gray)
-    if pattern is False:
-        red = np.rot90(red, rotation)
-        pattern = checkPattern(red)
-        if pattern is False:
-            green = np.rot90(green, rotation)
-            pattern = checkPattern(green)
-            if pattern is False:
-                blue = np.rot90(blue, rotation)
-                pattern = checkPattern(blue)
+    pattern = findPattern(gray, red, green, blue, rotation)
+    if pattern is False: # Rotate gray once and force pattern search again
+        gray = np.rot90(gray)
+        isMarker, rotation, gray = isAMarker(gray)
+        rotation += 1
+        if isMarker is False:
+            return None
+        pattern = findPattern(gray, red, green, blue, rotation)
 
     # Determine Color
     color = findColor(blue, green, red)
@@ -323,6 +331,9 @@ def drawMarkerID(imagePath, markers):
     return img
 
 ## DEV CODE ##
+
+# Declare Image to be Analyzed
+# imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
 
 # Print Array of Marker IDs
 # print(markerID(imageFile))
