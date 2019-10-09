@@ -260,9 +260,8 @@ def isAMarker(grayBinary):
     # Check Parity Bit
     if notch is True:
         parity, rot, grayBinary = hasParity(grayBinary, rot)
-
-    if parity is True:
-        return True, rot, grayBinary
+        if parity is True:
+            return True, rot, grayBinary
 
     return False, False, False
 
