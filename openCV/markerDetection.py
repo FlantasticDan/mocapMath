@@ -165,7 +165,7 @@ def removeExteriorSquares(squares):
     return squares
 
 # Create Marker Crops
-def markerDeformer(squares, img, size=96):
+def markerDeformer(squares, img, size=256):
     square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
     markers = []
     for rawMarker in squares:
@@ -187,7 +187,7 @@ def findMarkers(imagePath):
 ## MARKER IDENTIFICATION ##
 
 # Create Marker Binary Maps
-def createMarkerBinaryMaps(warpedMarker, bitSize=12):
+def createMarkerBinaryMaps(warpedMarker, bitSize=32):
     tag = np.empty([8, 8, 4])
     yChunk = 0
     while yChunk < 8:
@@ -241,7 +241,7 @@ def hasParity(grayBinary, rotation):
         grayBinary = np.rot90(grayBinary)
         notch, rot, grayBinary = isNotched(grayBinary)
         if notch is True and grayBinary[5][6] == 1:
-            return True, rotation + rot, grayBinary
+            return True, rotation + rot + 1, grayBinary
     return False, False, False
 
 def isAMarker(grayBinary):
@@ -286,11 +286,13 @@ def identifyMarker(unkownMarker):
     pattern = findPattern(gray, red, green, blue, rotation)
     if pattern is False: # Rotate gray once and force pattern search again
         gray = np.rot90(gray)
-        isMarker, rotation, gray = isAMarker(gray)
-        rotation += 1
+        isMarker, newRotation, gray = isAMarker(gray)
+        rotation = newRotation + rotation + 1
         if isMarker is False:
             return None
         pattern = findPattern(gray, red, green, blue, rotation)
+        if __name__ == '__main__' and pattern is False: # Debug Exporter
+            patternDebug(unkownMarker[0], gray, red, green, blue, rotation)
 
     # Determine Color
     color = findColor(blue, green, red)
@@ -332,11 +334,29 @@ def drawMarkerID(imagePath, markers):
 
 ## DEV CODE ##
 
+# Pattern Debug
+PATPATH = filedialog.askdirectory(title="Debug Directory")
+import random
+def patternDebug(markerImg, grayBinary, redBinary, greenBinary, blueBinary, rot):
+
+    # Generate Identifier
+    random_number = random.randint(0,16777215)
+    hexID = format(random_number, 'x')
+
+    cv2.imwrite("{}\{}.jpg".format(PATPATH, hexID), markerImg)
+    
+    np.savetxt("{}\{}_red.txt".format(PATPATH, hexID), np.rot90(redBinary, rot), '%1d')
+    np.savetxt("{}\{}_green.txt".format(PATPATH, hexID), np.rot90(greenBinary, rot), '%1d')
+    np.savetxt("{}\{}_blue.txt".format(PATPATH, hexID), np.rot90(blueBinary, rot), '%1d')
+    np.savetxt("{}\{}_gray.txt".format(PATPATH, hexID), grayBinary, '%1d')
+
+    return
+
 # Declare Image to be Analyzed
-# imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
+imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
 
 # Print Array of Marker IDs
-# print(markerID(imageFile))
+print(markerID(imageFile))
 
 # Export Images
 # exportPath = filedialog.askdirectory(title="Output Directory")
