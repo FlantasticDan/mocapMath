@@ -83,6 +83,7 @@ def imageProcessing(imgPath):
 
     # Pre-Processing
     img = cv2.imread(imgPath, flags=cv2.IMREAD_COLOR)
+    img = cv2.addWeighted(img, 1.75, np.zeros(img.shape, img.dtype), 0, -100) # Add Contrast
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     grey_inv = cv2.bitwise_not(grey)
     _, mask = cv2.threshold(grey_inv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -335,29 +336,36 @@ def drawMarkerID(imagePath, markers):
 ## DEV CODE ##
 
 # Pattern Debug
-PATPATH = filedialog.askdirectory(title="Debug Directory")
-import random
-def patternDebug(markerImg, grayBinary, redBinary, greenBinary, blueBinary, rot):
+# PATPATH = filedialog.askdirectory(title="Debug Directory")
+# import random
+# def patternDebug(markerImg, grayBinary, redBinary, greenBinary, blueBinary, rot):
 
-    # Generate Identifier
-    random_number = random.randint(0,16777215)
-    hexID = format(random_number, 'x')
+#     # Generate Identifier
+#     random_number = random.randint(0,16777215)
+#     hexID = format(random_number, 'x')
 
-    cv2.imwrite("{}\{}.jpg".format(PATPATH, hexID), markerImg)
+#     cv2.imwrite("{}\{}.jpg".format(PATPATH, hexID), markerImg)
     
-    np.savetxt("{}\{}_red.txt".format(PATPATH, hexID), np.rot90(redBinary, rot), '%1d')
-    np.savetxt("{}\{}_green.txt".format(PATPATH, hexID), np.rot90(greenBinary, rot), '%1d')
-    np.savetxt("{}\{}_blue.txt".format(PATPATH, hexID), np.rot90(blueBinary, rot), '%1d')
-    np.savetxt("{}\{}_gray.txt".format(PATPATH, hexID), grayBinary, '%1d')
+#     np.savetxt("{}\{}_red.txt".format(PATPATH, hexID), np.rot90(redBinary, rot), '%1d')
+#     np.savetxt("{}\{}_green.txt".format(PATPATH, hexID), np.rot90(greenBinary, rot), '%1d')
+#     np.savetxt("{}\{}_blue.txt".format(PATPATH, hexID), np.rot90(blueBinary, rot), '%1d')
+#     np.savetxt("{}\{}_gray.txt".format(PATPATH, hexID), grayBinary, '%1d')
 
-    return
+#     return
 
 # Declare Image to be Analyzed
-imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
+# imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
 
 # Print Array of Marker IDs
-print(markerID(imageFile))
+# print(markerID(imageFile))
 
 # Export Images
 # exportPath = filedialog.askdirectory(title="Output Directory")
 # cv2.imwrite(exportPath + "\marked.jpg", drawMarkerID(imageFile, markerID(imageFile)))
+
+# Analyze directory of Images
+# imageDir = filedialog.askdirectory(title="Image Directory")
+# for image in os.listdir(imageDir):
+#     img = os.path.join(imageDir, image)
+#     print(markerID(img))
+#     cv2.imwrite("{}\{}_marked.jpg".format(exportPath, image), drawMarkerID(img, markerID(img)))
