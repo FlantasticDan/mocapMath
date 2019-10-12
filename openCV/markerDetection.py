@@ -31,7 +31,7 @@ def importPattern(filepath):
     patternList = markerPattern.split(" ")
     del patternList[64]
     shape = np.reshape(patternList, (8, 8))
-    return shape.astype(dtype="uint8")
+    return shape.astype(dtype="float16")
 
 # Import Marker Patterns
 CIRCLE = (importPattern("markerArrays\circle.txt"), "circle")
@@ -45,7 +45,7 @@ PATTERNS = (CIRCLE, LINE, SLASH, SQUARE, TRIANGLE, Y)
 # Pattern Tester
 def checkPattern(mystery):
     for pattern in PATTERNS:
-        if np.array_equal(mystery, pattern[0]):
+        if np.allclose(mystery, pattern[0], 1, 0.5):
             return pattern[1]
     return False
 
@@ -292,8 +292,8 @@ def identifyMarker(unkownMarker):
         if isMarker is False:
             return None
         pattern = findPattern(gray, red, green, blue, rotation)
-        if __name__ == '__main__' and pattern is False: # Debug Exporter
-            patternDebug(unkownMarker[0], gray, red, green, blue, rotation)
+        # if __name__ == '__main__' and pattern is False: # Debug Exporter
+            # patternDebug(unkownMarker[0], gray, red, green, blue, rotation)
 
     # Determine Color
     color = findColor(blue, green, red)
@@ -353,13 +353,13 @@ def drawMarkerID(imagePath, markers):
 
 #     return
 
-# Declare Image to be Analyzed
+# # Declare Image to be Analyzed
 # imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
 
-# Print Array of Marker IDs
+# # Print Array of Marker IDs
 # print(markerID(imageFile))
 
-# Export Images
+# # Export Images
 # exportPath = filedialog.askdirectory(title="Output Directory")
 # cv2.imwrite(exportPath + "\marked.jpg", drawMarkerID(imageFile, markerID(imageFile)))
 
