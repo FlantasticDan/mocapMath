@@ -45,7 +45,7 @@ PATTERNS = (CIRCLE, LINE, SLASH, SQUARE, TRIANGLE, Y)
 # Pattern Tester
 def checkPattern(mystery):
     for pattern in PATTERNS:
-        if np.allclose(mystery, pattern[0], 1, 0.5):
+        if np.allclose(mystery, pattern[0], 0, 0.5):
             return pattern[1]
     return False
 
@@ -293,7 +293,7 @@ def identifyMarker(unkownMarker):
             return None
         pattern = findPattern(gray, red, green, blue, rotation)
         # if __name__ == '__main__' and pattern is False: # Debug Exporter
-            # patternDebug(unkownMarker[0], gray, red, green, blue, rotation)
+        #     patternDebug(unkownMarker[0], gray, red, green, blue, rotation)
 
     # Determine Color
     color = findColor(blue, green, red)
