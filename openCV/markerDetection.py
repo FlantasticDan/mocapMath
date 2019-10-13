@@ -34,12 +34,12 @@ def importPattern(filepath):
     return shape.astype(dtype="float16")
 
 # Import Marker Patterns
-CIRCLE = (importPattern("markerArrays\circle.txt"), "circle")
-LINE = (importPattern("markerArrays\line.txt"), "line")
-SLASH = (importPattern("markerArrays\slash.txt"), "slash")
-SQUARE = (importPattern("markerArrays\square.txt"), "square")
+CIRCLE = (importPattern("markerArrays\\circle.txt"), "circle")
+LINE = (importPattern("markerArrays\\line.txt"), "line")
+SLASH = (importPattern("markerArrays\\slash.txt"), "slash")
+SQUARE = (importPattern("markerArrays\\square.txt"), "square")
 TRIANGLE = (importPattern("markerArrays\\triangle.txt"), "triangle")
-Y = (importPattern("markerArrays\y.txt"), "y")
+Y = (importPattern("markerArrays\\y.txt"), "y")
 PATTERNS = (CIRCLE, LINE, SLASH, SQUARE, TRIANGLE, Y)
 
 # Pattern Tester
@@ -146,15 +146,15 @@ def removeExteriorSquares(squares):
                         (squares[sq]['corners'][1][0], squares[sq]['corners'][1][1]),
                         (squares[sq]['corners'][2][0], squares[sq]['corners'][2][1]),
                         (squares[sq]['corners'][3][0], squares[sq]['corners'][3][1])])
-        for bound, _ in enumerate(squares):
-            if bound == sq:
+        for bd, _ in enumerate(squares):
+            if bd == sq:
                 pass
             else:
-                bounding = Polygon([(squares[bound]['corners'][0][0], squares[bound]['corners'][0][1]),
-                                    (squares[bound]['corners'][1][0], squares[bound]['corners'][1][1]),
-                                    (squares[bound]['corners'][2][0], squares[bound]['corners'][2][1]),
-                                    (squares[bound]['corners'][3][0], squares[bound]['corners'][3][1])])
-                if test.contains(bounding):
+                bding = Polygon([(squares[bd]['corners'][0][0], squares[bd]['corners'][0][1]),
+                                 (squares[bd]['corners'][1][0], squares[bd]['corners'][1][1]),
+                                 (squares[bd]['corners'][2][0], squares[bd]['corners'][2][1]),
+                                 (squares[bd]['corners'][3][0], squares[bd]['corners'][3][1])])
+                if test.contains(bding):
                     removal.append(sq)
                     break
 
@@ -162,7 +162,7 @@ def removeExteriorSquares(squares):
     removal.sort(reverse=True)
     for index in removal:
         del squares[index]
-    
+
     return squares
 
 # Create Marker Crops
@@ -170,10 +170,10 @@ def markerDeformer(squares, img, size=256):
     square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
     markers = []
     for rawMarker in squares:
-        perspective = cv2.getPerspectiveTransform(np.array(rawMarker['corners'], dtype="float32"), square)
-        warped = cv2.warpPerspective(img, perspective, (size, size))
+        persp = cv2.getPerspectiveTransform(np.array(rawMarker['corners'], dtype="float32"), square)
+        warped = cv2.warpPerspective(img, persp, (size, size))
         markers.append((warped, rawMarker['center'], rawMarker['corners']))
-    
+
     return markers # (marker image, center point of marker)
 
 ## MARKER DETECTION ##
@@ -195,7 +195,7 @@ def createMarkerBinaryMaps(warpedMarker, bitSize=32):
         xChunk = 0
         while xChunk < 8: # Average each channel of each bit
             tag[yChunk, xChunk] = cv2.mean(warpedMarker[(yChunk*bitSize) : ((yChunk+1)*bitSize),
-                                                           (xChunk*bitSize) : ((xChunk+1)*bitSize)])
+                                                        (xChunk*bitSize) : ((xChunk+1)*bitSize)])
             xChunk += 1
         yChunk += 1
 
@@ -222,7 +222,7 @@ def isBoxed(binary):
         if binary[c][0] != 0 or binary[c][7] != 0:
             return False
         c += 1
-    
+
     return True
 
 def isNotched(binary):
@@ -254,7 +254,7 @@ def isAMarker(binary):
         notch, rot, binary = isNotched(binary)
     else:
         return False, False, binary
-    
+
     # Check Parity Bit
     if notch is True:
         parity, rot, binary = hasParity(binary, rot)
@@ -284,7 +284,7 @@ def identifyMarker(unkownMarker):
         isMarker, rotation, red = isAMarker(red)
         if isMarker is False:
             return None
-    
+
     # Pattern Identification
     pattern = findPattern(gray, red, green, blue, rotation)
     if pattern is False: # Rotate gray once and force pattern search again
