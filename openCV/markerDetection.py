@@ -337,7 +337,7 @@ def drawMarkerID(imagePath, markers):
 
 ## DEV CODE ##
 
-# Pattern Debug
+# # Pattern Debug
 # PATPATH = filedialog.askdirectory(title="Debug Directory")
 # import random
 # def patternDebug(markerImg, grayBinary, redBinary, greenBinary, blueBinary, rot):
