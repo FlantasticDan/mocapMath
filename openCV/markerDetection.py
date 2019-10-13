@@ -210,58 +210,58 @@ def createMarkerBinaryMaps(warpedMarker, bitSize=32):
 
     return grayBinary, blueBinary, greenBinary, redBinary
 
-def isBoxed(grayBinary):
-    for bit in grayBinary[0]:
+def isBoxed(binary):
+    for bit in binary[0]:
         if bit != 0:
             return False
-    for bit in grayBinary[7]:
+    for bit in binary[7]:
         if bit != 0:
             return False
     c = 1
     while c < 7:
-        if grayBinary[c][0] != 0 or grayBinary[c][7] != 0:
+        if binary[c][0] != 0 or binary[c][7] != 0:
             return False
         c += 1
     
     return True
 
-def isNotched(grayBinary):
+def isNotched(binary):
     rot = 0
     while rot < 4:
-        if grayBinary[1][1] == 0 and grayBinary[1][2] == 0 and grayBinary[2][1] == 0:
-            return True, rot, grayBinary
+        if binary[1][1] == 0 and binary[1][2] == 0 and binary[2][1] == 0:
+            return True, rot, binary
         else:
-            grayBinary = np.rot90(grayBinary)
+            binary = np.rot90(binary)
             rot += 1
-    return False, False, False
+    return False, False, binary
 
-def hasParity(grayBinary, rotation):
-    if grayBinary[5][6] == 1:
-        return True, rotation, grayBinary
+def hasParity(binary, rotation):
+    if binary[5][6] == 1:
+        return True, rotation, binary
     else:
-        grayBinary = np.rot90(grayBinary)
-        notch, rot, grayBinary = isNotched(grayBinary)
-        if notch is True and grayBinary[5][6] == 1:
-            return True, rotation + rot + 1, grayBinary
-    return False, False, False
+        binary = np.rot90(binary)
+        notch, rot, binary = isNotched(binary)
+        if notch is True and binary[5][6] == 1:
+            return True, rotation + rot + 1, binary
+    return False, False, binary
 
-def isAMarker(grayBinary):
+def isAMarker(binary):
     # Check Permimeter Bits
-    barrier = isBoxed(grayBinary)
+    barrier = isBoxed(binary)
 
     # Check for Notch
     if barrier is True:
-        notch, rot, grayBinary = isNotched(grayBinary)
+        notch, rot, binary = isNotched(binary)
     else:
-        return False, False, False
+        return False, False, binary
     
     # Check Parity Bit
     if notch is True:
-        parity, rot, grayBinary = hasParity(grayBinary, rot)
+        parity, rot, binary = hasParity(binary, rot)
         if parity is True:
-            return True, rot, grayBinary
+            return True, rot, binary
 
-    return False, False, False
+    return False, False, binary
 
 def findPattern(grayChannel, redChannel, greenChannel, blueChannel, rot):
     pattern = checkPattern(grayChannel)
@@ -281,7 +281,9 @@ def identifyMarker(unkownMarker):
     isMarker, rotation, gray = isAMarker(gray)
 
     if isMarker is False:
-        return None
+        isMarker, rotation, red = isAMarker(red)
+        if isMarker is False:
+            return None
     
     # Pattern Identification
     pattern = findPattern(gray, red, green, blue, rotation)
@@ -290,10 +292,10 @@ def identifyMarker(unkownMarker):
         isMarker, newRotation, gray = isAMarker(gray)
         rotation = newRotation + rotation + 1
         if isMarker is False:
-            return None
+            isMarker, rotation, red = isAMarker(red)
+            if isMarker is False:
+                return None
         pattern = findPattern(gray, red, green, blue, rotation)
-        # if __name__ == '__main__' and pattern is False: # Debug Exporter
-        #     patternDebug(unkownMarker[0], gray, red, green, blue, rotation)
 
     # Determine Color
     color = findColor(blue, green, red)
@@ -345,7 +347,7 @@ def drawMarkerID(imagePath, markers):
 #     hexID = format(random_number, 'x')
 
 #     cv2.imwrite("{}\{}.jpg".format(PATPATH, hexID), markerImg)
-    
+
 #     np.savetxt("{}\{}_red.txt".format(PATPATH, hexID), np.rot90(redBinary, rot), '%1d')
 #     np.savetxt("{}\{}_green.txt".format(PATPATH, hexID), np.rot90(greenBinary, rot), '%1d')
 #     np.savetxt("{}\{}_blue.txt".format(PATPATH, hexID), np.rot90(blueBinary, rot), '%1d')
