@@ -96,7 +96,8 @@ def imageProcessing(imgPath):
     img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, -150) # Add Contrast
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     grey_inv = cv2.bitwise_not(grey)
-    _, mask = cv2.threshold(grey_inv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # _, mask = cv2.threshold(grey_inv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    mask = cv2.adaptiveThreshold(grey_inv, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 
     # Shape Detection
     contour = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -114,7 +115,7 @@ def findCenter(a, b, c, d):
         return None
 
 # Check for Square
-def isSquare(shape, minPerimeter=50):
+def isSquare(shape, minPerimeter=150):
     peri = cv2.arcLength(shape, True)
     corners = cv2.approxPolyDP(shape, 0.02 * peri, True)
     if len(corners) is 4 and peri > minPerimeter: # check shape is a quadrangle of useable size
