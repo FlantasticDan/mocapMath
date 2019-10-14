@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
+from statistics import mode
 import os
 import sys
 import cv2
@@ -51,10 +52,19 @@ def checkPattern(mystery):
 
 # Color Finder
 def findColor(blueChannel, greenChannel, redChannel):
-    r = redChannel[3][3]
-    g = greenChannel[3][3]
-    b = blueChannel[3][3]
+    x3x3 = checkColor(redChannel[3][3], greenChannel[3][3], blueChannel[3][3])
+    x3x4 = checkColor(redChannel[3][4], greenChannel[3][4], blueChannel[3][4])
+    x4x3 = checkColor(redChannel[4][3], greenChannel[4][3], blueChannel[4][3])
+    x4x4 = checkColor(redChannel[4][4], greenChannel[4][4], blueChannel[4][4])
+    colorBits = [x3x3, x3x4, x4x3, x4x4]
+    try:
+        return mode(colorBits)
+    except ValueError:
+        for bit in colorBits:
+            if bit is not False:
+                return bit
 
+def checkColor(r, g, b):
     if r == 1:
         if b == 1:
             if g == 0:
