@@ -358,6 +358,39 @@ def drawMarkerID(imagePath, markers):
 # # Declare Image to be Analyzed
 # imageFile = resource_path(filedialog.askopenfilename(title="Select an Image"))
 
+# # Print Marker Summary
+# array = markerID(imageFile)
+# markFail = 0
+# colorFail = 0
+# shapeFail = 0
+# bigFail = 0
+# colorWin = 0
+# shapeWin = 0
+# fullWin = 0
+
+# for mk in array:
+#     if mk is None:
+#         markFail += 1
+#     else:
+#         if mk[0] is False:
+#             colorFail += 1
+#         else:
+#             colorWin += 1
+#         if mk[1] is False:
+#             shapeFail += 1
+#         else:
+#             shapeWin += 1
+#         if mk[0] is False and mk[1] is False:
+#             bigFail += 1
+#         else:
+#             fullWin += 1
+
+# print(" T  |  F  | Category")
+# print("{:^3d} | {:^3d} | Marker Detections".format(fullWin, bigFail))
+# print("{:^3d} | {:^3d} | Color Detections".format(colorWin, colorFail))
+# print("{:^3d} | {:^3d} | Shape Detections".format(shapeWin, shapeFail))
+# print("{:^3d} | --- | Marker Rejections".format(markFail))
+
 # # Print Array of Marker IDs
 # print(markerID(imageFile))
 
