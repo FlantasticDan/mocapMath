@@ -1,3 +1,5 @@
+"""Tools for detecting and identifying markers in images."""
+
 import tkinter as tk
 from tkinter import filedialog
 from statistics import mode
@@ -25,6 +27,7 @@ def resource_path(relative_path):
 
 # Marker Pattern Importer
 def importPattern(filepath):
+    """ Return a numPy array given a .txt file path."""
     markerPattern = ""
     with open(resource_path(filepath), "r") as pattern:
         for line in pattern:
@@ -45,6 +48,7 @@ PATTERNS = (CIRCLE, LINE, SLASH, SQUARE, TRIANGLE, Y)
 
 # Pattern Tester
 def checkPattern(mystery):
+    """Checks an unknown array against known patterns, returns the matching pattern's identifier."""
     for pattern in PATTERNS:
         if np.allclose(mystery, pattern[0], 0, 0.5):
             return pattern[1]
@@ -52,6 +56,17 @@ def checkPattern(mystery):
 
 # Color Finder
 def findColor(blueChannel, greenChannel, redChannel):
+    """
+    Determine the color of processed marker arrays.
+
+    Args:
+        blueChannel: NumPy array of a marker's binary blue channel.
+        greenChannel: NumPy array of a marker's binary green channel.
+        redChannel: NumPy array of a marker's binary red channel.
+
+    Returns:
+        Color ID string of the given marker channels or False if undetermined
+    """
     x3x3 = checkColor(redChannel[3][3], greenChannel[3][3], blueChannel[3][3])
     x3x4 = checkColor(redChannel[3][4], greenChannel[3][4], blueChannel[3][4])
     x4x3 = checkColor(redChannel[4][3], greenChannel[4][3], blueChannel[4][3])
@@ -65,6 +80,7 @@ def findColor(blueChannel, greenChannel, redChannel):
                 return bit
 
 def checkColor(r, g, b):
+    """Returns color ID string for given bit."""
     if r == 1:
         if b == 1:
             if g == 0:
@@ -90,14 +106,22 @@ def checkColor(r, g, b):
 
 # Image Pre-Processing
 def imageProcessing(imgPath):
+    """
+    Processes an image for marker detection.
 
+    Args:
+        imgPath: Path to an openCV compatiable image.
+
+    Returns:
+        Array of contours, openCV image object.
+    """
     # Pre-Processing
     img = cv2.imread(imgPath, flags=cv2.IMREAD_COLOR)
     img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, -150) # Add Contrast
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    grey_inv = cv2.bitwise_not(grey)
-    # _, mask = cv2.threshold(grey_inv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    mask = cv2.adaptiveThreshold(grey_inv, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+    greyInv = cv2.bitwise_not(grey)
+    # _, mask = cv2.threshold(greyInv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    mask = cv2.adaptiveThreshold(greyInv, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 
     # Shape Detection
     contour = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -106,6 +130,7 @@ def imageProcessing(imgPath):
 
 # Find Center of Quadrangles
 def findCenter(a, b, c, d):
+    """Returns the center of a quadrangle given 4 Shapley points in clockwise order."""
     ac = LineString([a, c])
     bd = LineString([b, d])
     center = ac.intersection(bd)
@@ -116,6 +141,7 @@ def findCenter(a, b, c, d):
 
 # Check for Square
 def isSquare(shape, minPerimeter=150):
+    """Returns the corners and center of a sqaure-like contour or false if not square-like."""
     peri = cv2.arcLength(shape, True)
     corners = cv2.approxPolyDP(shape, 0.02 * peri, True)
     if len(corners) is 4 and peri > minPerimeter: # check shape is a quadrangle of useable size
@@ -133,6 +159,7 @@ def isSquare(shape, minPerimeter=150):
 
 # Identify Squares from Shapes
 def findSquares(contour):
+    """Returns dictionary of square-like 'corners' and 'center(s)' from a set of contours."""
     squares = []
     c = -1
     for shape in contour:
@@ -149,6 +176,7 @@ def findSquares(contour):
 
 # Sort for Interior Squares
 def removeExteriorSquares(squares):
+    """Sorts a sqaure-like dictionary returning a dictionary void of exterior bounding squares."""
     removal = []
 
     # Check for Squares contatined in other Squares
@@ -178,6 +206,19 @@ def removeExteriorSquares(squares):
 
 # Create Marker Crops
 def markerDeformer(squares, img, size=256):
+    """
+    Deforms and crops an image into marker sqaures.
+
+    Args:
+        sqaures: Sqaure-like dictionary.
+        img: openCV image object from which the square-like dictionary was derived.
+
+    Returns:
+        A list of tuples in the form:
+            (openCV image object of marker crop,
+             center point coordinates in original image,
+             list of corner coordinates from original image)
+    """
     square = np.array([[0, 0], [0, size], [size, size], [size, 0]], dtype="float32")
     markers = []
     for rawMarker in squares:
@@ -189,6 +230,18 @@ def markerDeformer(squares, img, size=256):
 
 ## MARKER DETECTION ##
 def findMarkers(imagePath):
+    """
+    Finds markers in an image.
+
+    Args:
+        imagePath: Path to an openCV compatiable image.
+
+    Returns:
+        A list of tuples in the form:
+            (openCV image object of marker crop,
+             center point coordinates in original image,
+             list of corner coordinates from original image)
+    """
     imageContours, image = imageProcessing(imagePath)
     foundSquares = findSquares(imageContours)
     sortedSquares = removeExteriorSquares(foundSquares)
@@ -200,6 +253,7 @@ def findMarkers(imagePath):
 
 # Create Marker Binary Maps
 def createMarkerBinaryMaps(warpedMarker, bitSize=32):
+    """Returns thresholded 8x8 numPy bit per channel arrays from marker images."""
     tag = np.empty([8, 8, 4])
     yChunk = 0
     while yChunk < 8:
@@ -222,6 +276,7 @@ def createMarkerBinaryMaps(warpedMarker, bitSize=32):
     return grayBinary, blueBinary, greenBinary, redBinary
 
 def isBoxed(binary):
+    """Determines if a bit array contains the marker border box."""
     for bit in binary[0]:
         if bit != 0:
             return False
@@ -237,6 +292,7 @@ def isBoxed(binary):
     return True
 
 def isNotched(binary):
+    """Determines if a bit array contains the marker orientation notch."""
     rot = 0
     while rot < 4:
         if binary[1][1] == 0 and binary[1][2] == 0 and binary[2][1] == 0:
@@ -247,6 +303,7 @@ def isNotched(binary):
     return False, False, binary
 
 def hasParity(binary, rotation):
+    """Determines if a bit array has the marker parity bit."""
     if binary[5][6] == 1:
         return True, rotation, binary
     else:
@@ -257,6 +314,7 @@ def hasParity(binary, rotation):
     return False, False, binary
 
 def isAMarker(binary):
+    """Determines if a bit array is a marker."""
     # Check Permimeter Bits
     barrier = isBoxed(binary)
 
@@ -275,6 +333,19 @@ def isAMarker(binary):
     return False, False, binary
 
 def findPattern(grayChannel, redChannel, greenChannel, blueChannel, rot):
+    """
+    Finds the marker pattern from bit channel arrays.
+
+    Args:
+        grayChannel: NumPy bit array for the marker image's gray channel.
+        redChannel: NumPy bit array for the marker image's red channel.
+        graeenChannel: NumPy bit array for the marker image's green channel.
+        blueChannel: NumPy bit array for the marker image's blue channel.
+        rot (int): number of rotations performed to orient bit array.
+
+    Returns:
+        Pattern ID String.
+    """
     pattern = checkPattern(grayChannel)
     if pattern is False:
         redChannel = np.rot90(redChannel, rot)
@@ -288,6 +359,17 @@ def findPattern(grayChannel, redChannel, greenChannel, blueChannel, rot):
     return pattern
 
 def identifyMarker(unkownMarker):
+    """
+    Identifies the color, pattern, center and corners of a marker.
+
+    Args:
+        unknownMarker: A tuple in the form: (openCV image object of marker crop,
+                                             center point coordinates in original image,
+                                             list of corner coordinates from original image)
+
+    Returns:
+        Color ID String, Pattern ID String, Marker Center Coordinates (x, y), Marker Corner Array.
+    """
     gray, blue, green, red = createMarkerBinaryMaps(unkownMarker[0])
     isMarker, rotation, gray = isAMarker(gray)
 
@@ -314,6 +396,7 @@ def identifyMarker(unkownMarker):
     return color, pattern, unkownMarker[1], unkownMarker[2] # (color, pattern, center, [corners])
 
 def markerID(imagePath):
+    """"Returns Identified Marker from an openCV compatible image path."""
     markerIDs = []
     markers = findMarkers(imagePath)
     for marker in markers:
@@ -321,6 +404,7 @@ def markerID(imagePath):
     return markerIDs
 
 def getMarkerColor(marker):
+    """Given an identified marker returns the RGB tuple from the color ID String."""
     colorStr = marker[0]
     if colorStr == 'blue':
         return (255, 0, 0)
@@ -337,6 +421,16 @@ def getMarkerColor(marker):
     return (0, 0, 0)
 
 def drawMarkerID(imagePath, markers):
+    """
+    Draws marker identification graphics ontop of source image.
+
+    Args:
+        imagePath: File path to the source openCV compatible image.
+        markers: List of identified markers.
+
+    Returns:
+        Annotated openCV image object.
+    """
     img = cv2.imread(imagePath)
     for marker in markers:
         if marker is not None:
