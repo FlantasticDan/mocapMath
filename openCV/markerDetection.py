@@ -435,9 +435,12 @@ def drawMarkerID(imagePath, markers):
     for marker in markers:
         if marker is not None:
             corners = np.array([marker[3][0], marker[3][1], marker[3][2], marker[3][3]], np.int32)
-            cv2.polylines(img, [corners], True, getMarkerColor(marker), 10)
-            cv2.putText(img, "{}".format(marker[1]), (int(marker[2][0]), int(marker[2][1])), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 10)
-            cv2.putText(img, "{}".format(marker[1]), (int(marker[2][0]), int(marker[2][1])), cv2.FONT_HERSHEY_SIMPLEX, 2, getMarkerColor(marker), 4)
+            center = (int(marker[2][0]), int(marker[2][1]))
+            markerColor = getMarkerColor(marker)
+            cv2.polylines(img, [corners], True, markerColor, 10)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(img, "{}".format(marker[1]), center, font, 2, (0, 0, 0), 10)
+            cv2.putText(img, "{}".format(marker[1]), center, font, 2, markerColor, 4)
     return img
 
 ## DEV CODE ##
