@@ -139,6 +139,28 @@ def findCenter(a, b, c, d):
     except AttributeError:
         return None
 
+def findX(point):
+    """Extracts the x coordinate in an ordered pair."""
+    return point[0][0]
+
+def findY(point):
+    """Extracts the y coordinate in an ordered pair."""
+    return point[0][1]
+
+def orderCorners(coordinates):
+    """Given 4 points in xy coordinate space, return the points in clockwise order."""
+    try:
+        coordinates = coordinates.tolist()
+    except AttributeError:
+        return coordinates
+    top = max(coordinates, key=findY)
+    coordinates.remove(top)
+    right = max(coordinates, key=findX)
+    coordinates.remove(right)
+    bottom = min(coordinates, key=findY)
+    coordinates.remove(bottom)
+    return [top, right, bottom, coordinates[0]]
+
 # Check for Square
 def isSquare(shape, minPerimeter=150):
     """Returns the corners and center of a sqaure-like contour or false if not square-like."""
