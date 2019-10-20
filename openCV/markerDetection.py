@@ -313,26 +313,15 @@ def isBoxed(binary):
 
     return True
 
-def isNotched(binary):
-    """Determines if a bit array contains the marker orientation notch."""
+def isOriented(binary):
+    """Determines if a bit array contains the marker orientation bits."""
     rot = 0
     while rot < 4:
-        if binary[1][1] == 0 and binary[1][2] == 0 and binary[2][1] == 0:
+        if binary[1][1] == 0 and binary[1][2] == 0 and binary[2][1] == 0 and binary[5][6] == 1:
             return True, rot, binary
         else:
             binary = np.rot90(binary)
             rot += 1
-    return False, False, binary
-
-def hasParity(binary, rotation):
-    """Determines if a bit array has the marker parity bit."""
-    if binary[5][6] == 1:
-        return True, rotation, binary
-    else:
-        binary = np.rot90(binary)
-        notch, rot, binary = isNotched(binary)
-        if notch is True and binary[5][6] == 1:
-            return True, rotation + rot + 1, binary
     return False, False, binary
 
 def isAMarker(binary):
@@ -342,15 +331,13 @@ def isAMarker(binary):
 
     # Check for Notch
     if barrier is True:
-        notch, rot, binary = isNotched(binary)
+        orientation, rot, binary = isOriented(binary)
     else:
         return False, False, binary
 
     # Check Parity Bit
-    if notch is True:
-        parity, rot, binary = hasParity(binary, rot)
-        if parity is True:
-            return True, rot, binary
+    if orientation is True:
+        return True, rot, binary
 
     return False, False, binary
 
