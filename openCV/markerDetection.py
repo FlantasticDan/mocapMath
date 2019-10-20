@@ -179,7 +179,7 @@ def findSquares(contour):
 def removeExteriorSquares(squares):
     """Sorts a sqaure-like dictionary returning a dictionary void of exterior bounding squares."""
     removal = []
-
+    return squares
     # Check for Squares contatined in other Squares
     for sq, _ in enumerate(squares):
         test = Polygon([(squares[sq]['corners'][0][0], squares[sq]['corners'][0][1]),
