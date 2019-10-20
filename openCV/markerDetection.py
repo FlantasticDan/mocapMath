@@ -117,7 +117,8 @@ def imageProcessing(imgPath):
     """
     # Pre-Processing
     img = cv2.imread(imgPath, flags=cv2.IMREAD_COLOR)
-    img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, -150) # Add Contrast
+    # img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, -100) # Add Contrast
+
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     greyInv = cv2.bitwise_not(grey)
     # _, mask = cv2.threshold(greyInv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
