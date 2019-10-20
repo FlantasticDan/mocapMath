@@ -384,12 +384,31 @@ def identifyMarker(unkownMarker):
     return color, pattern, unkownMarker[1], unkownMarker[2] # (color, pattern, center, [corners])
 
 def markerID(imagePath):
-    """"Returns Identified Marker from an openCV compatible image path."""
+    """"Returns an Identified Markers Dictionary from an openCV compatible image path."""
     markerIDs = []
     markers = findMarkers(imagePath)
     for marker in markers:
         markerIDs.append(identifyMarker(marker))
-    return markerIDs
+    return organizeMarkerIDs(markerIDs)
+
+def organizeMarkerIDs(unsortedIDs):
+    """Returns an organized marker dictionary from Marker ID List."""
+    colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta', False]
+    patterns = ['triangle', 'square', 'circle', 'slash', 'line', 'y', False]
+
+    sortedIDs = {}
+
+    for c in colors:
+        sortedIDs[c] = {}
+        for p in patterns:
+            sortedIDs[c][p] = None
+
+    for marker in unsortedIDs:
+        if marker is None:
+            continue
+        sortedIDs[marker[0]][marker[1]] = (marker[2], marker[3])
+
+    return sortedIDs
 
 def getMarkerColor(marker):
     """Given an identified marker returns the RGB tuple from the color ID String."""
