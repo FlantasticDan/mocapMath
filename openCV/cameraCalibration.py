@@ -1,11 +1,11 @@
+"""Tools for calibrating cameras from an image set of a calibration pattern."""
+
 import os
 import sys
-import csv
 import tkinter as tk
 from tkinter import filedialog
-import lox
 import cv2
-import numpy
+import numpy as np
 
 # Configure Tkinter
 root = tk.Tk()
@@ -21,21 +21,17 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-# Import Sensor Database
-SENSORS = []
-with open(resource_path("./sensors.csv"), newline='') as database:
-    data = csv.reader(database)
-    for sensor in data:
-        SENSORS.append(sensor)
-SENSORS.pop(0)
-
-imageDir = filedialog.askdirectory(title="Select Directory")
-
-COUNT = 0
-QUENE = len(os.listdir(imageDir))
-PATTERN = (9, 7)
-
 def makeChessboard(col, row):
+    """
+    Creates a idealized coordinate array of a chessboard.
+
+    Args:
+        col (int): number of interior columns on the chessboard
+        row (int): number of interior rows on the chessboard
+
+    Returns:
+        Raw 2D (z=0) chessboard coordinate array.
+    """
     x = 0
     y = 0
     chessboard = []
@@ -49,119 +45,133 @@ def makeChessboard(col, row):
 
     return chessboard
 
-thread = int(os.cpu_count() / 2)
+def sensorOptimizer(horizontal, vertical, imageSize):
+    """
+    Checks and adjusts a source image sensor size for compatiabilty with given image dimensions.
 
-@lox.thread(thread)
-def detectCorners(imagePath, imgFile):
-    global COUNT
+    Args:
+        horizontal (float): sensor width in mm
+        vertical (float): sensor height in mm
+        imageSize (x,y): dimensions of given images in px
 
-    imgC = cv2.imread(imagePath)
-    found, intersects = cv2.findChessboardCorners(imgC, PATTERN, flags=cv2.CALIB_CB_FAST_CHECK)
+    Returns:
+        (sensorWidth, sensorHeight)
+    """
 
-    corners = []
+    sensor = (horizontal, vertical)
+    if imageSize[0] / imageSize[1] != sensor[0] / sensor[1]:
+        newSensor = (sensor[0], (imageSize[1] * sensor[0]) / imageSize[0])
+        if newSensor[1] > sensor[1]:
+            newSensor = ((sensor[1] * imageSize[0]) / imageSize[1], sensor[1])
+            return newSensor
+    return sensor
+
+def detectCorners(imgPath, pattern):
+    """
+    Find all chessboard corners in an image.
+
+    Args:
+        imgPath: OpenCV compatiable image file path
+        pattern (cols, rows): Size of the interior chessboard grid.
+
+    Returns:
+        Array of coordinates of chessboard corners in image space.
+    """
+    img = cv2.imread(imgPath)
+    found, intersects = cv2.findChessboardCorners(img, pattern)
 
     if found is True:
+        corners = []
         for group in intersects:
             for intersect in group:
                 corners.append((intersect[0], intersect[1]))
-        COUNT += 1
-        sys.stdout.write("\r{:02d} of {} | {} Processed        ".format(COUNT, QUENE, imgFile))
-        sys.stdout.flush()
         return corners
-    else:
-        COUNT += 1
-        sys.stdout.write("\r{:02d} of {} | {} Failed        ".format(COUNT, QUENE, imgFile))
-        sys.stdout.flush()
-        return [False, imgFile]
+    
+    return None
 
-# Variables for Camera Calibration from Corner Detection
-BOARD = makeChessboard(PATTERN[0], PATTERN[1])
-objectPoints = []
-imgPoints = []
-success = 0
-errors = 0
+def createCalibrationArrays(board, combinedCorners):
+    """
+    Creates arrays from the chessboard and detected corners for solving camera properties.
 
-# Start Threads for Corner Detection
-for image in os.listdir(imageDir):
-    img = os.path.join(imageDir, image)
-    detectCorners.scatter(img, image)
+    Args:
+        board: 2D Chessboard Coordinate Array
+        combinedCorners: Array of arrays of coordinates of detected chessboard corners
 
-# Collect and Verify Corner Data from Threads
-imgProcess = detectCorners.gather()
+    Returns:
+        imagePoints: Combined NumPy array of coordinates of detected chessboard corners
+        objectPoints: Correlating 2D Chessboard Coordinate NumPy Array
+    """
 
-print("")
+    imagePoints = []
+    objectPoints = []
 
-for result in imgProcess:
-    if result[0] is not False:
-        imgPoints.append(result)
-        objectPoints.append(BOARD)
-        success += 1
-    else:
-        errors += 1
-        print("{} failed.".format(result[1]))
+    for result in combinedCorners:
+        if result is not None:
+            imagePoints.append(result)
+            objectPoints.append(board)
 
-print("\n--- Corner Detection Results ---\nSuccess: {}\nFail: {}\n".format(success, errors))
+    imagePoints = np.array(imagePoints, dtype='float32')
+    objectPoints = np.array(objectPoints, dtype='float32')
 
-# Convert to Numpy Arrays
-oPts = numpy.array(objectPoints)
-iPts = numpy.array(imgPoints)
-objects = oPts.astype('float32')
-images = iPts.astype('float32')
+    return imagePoints, objectPoints
 
-# User Selects Camera Sensor
-print("\n--- Camera Sensor Sizes ---")
-print("## |  Width | Height | Cameras")
-for config in SENSORS:
-    print("{: 2d} | {: 6.2f} | {: 6.2f} | {}".format(int(config[0]), float(config[1]), float(config[2]), config[3]))
-sensorSelection = input("\nWhich ## corresponds to your camera's sensor? ")
-while True:
-    try:
-        SENSORS[int(sensorSelection)]
-        break
-    except IndexError:
-        sensorSelection = input("[!] (Invalid Input) Which ## corresponds to your camera's sensor? ")
+def getImageSize(imgPath):
+    """Returns the dimensions of an image."""
+    img = cv2.imread(imgPath)
+    size = img.shape
+    return (size[1], size[0])
 
-if int(sensorSelection) != 0:
-    SENSOR = (float(SENSORS[int(sensorSelection) - 1][1]), float(SENSORS[int(sensorSelection) - 1][2]))
-else:
-    customSensorX = input("Custom Sensor Size Width in mm: ")
-    while True:
-        try:
-            customSensorX = float(customSensorX)
-            break
-        except ValueError:
-            customSensorX = input("[!] (Invalid Input) Custom Sensor Size Width in mm: ")
-    customSensorY = input("Custom Sensor Size Height in mm: ")
-    while True:
-        try:
-            customSensorY = float(customSensorY)
-            break
-        except ValueError:
-            customSensorY = input("[!] (Invalid Input) Custom Sensor Size Height in mm: ")
-    SENSOR = (customSensorX, customSensorY)
+def cameraCalibration(imgDirectory, sensorWidth, sensorHeight, patternColumns, patternRows):
+    """
+    Calculates necessary camera calibration metrics from an image set of a calibration chessboard.
 
-# Detect Image Dimensions and Adjust Sensor if Neccessary
-sizeImg = cv2.imread(os.path.join(imageDir, os.listdir(imageDir)[0]))
-size = sizeImg.shape
-dimensions = (size[1], size[0])
-rawSensor = SENSOR
-if size[1] / size[0] != SENSOR[0] / SENSOR[1]:
-    SENSOR = (SENSOR[0], (size[0] * SENSOR[0]) / size[1])
-    if SENSOR[1] > rawSensor[1]:
-        sensorH = rawSensor[1]
-        SENSOR = ((sensorH * size[1]) / size[0], sensorH)
-    print("Effective Sensor Size Calculated as {:4.2f} mm x {:4.2f} mm".format(SENSOR[0], SENSOR[1]))
+    Args:
+        imgDirectory: Path to a directory containing the image set.
+        sensorWidth: Width of the Image Sensor in mm.
+        sensorHeight: Height of the Image Sensor in mm.
+        patternColums: Number of interior columns on calibration pattern.
+        patternRows: Number of interior rows on calibration pattern.
 
-# Camera Matrix Calculations
-initialMatrix = cv2.initCameraMatrix2D(objects, images, dimensions)
-error, matrix, distortion, rotation, translation = cv2.calibrateCamera(objects, images,
-                                                                       dimensions, initialMatrix,
-                                                                       None)
+    Returns:
+        matrix: Camera Matrix
+        distortion: Distortion Coefficents
+        fov: (horizontal, vertixal) field of view in degrees
+    """
+    # Initialize Variables
+    detectedCorners = []
+    patternSize = (patternColumns, patternRows)
+    imageSize = None
 
-print("\n\n--- Camera Matrix Calculations ---\nError: {:.4f} px".format(error))
+    # Create Board Template
+    board = makeChessboard(patternColumns, patternRows)
 
-fov = [None, None]
-fov[0], fov[1], focal, principal, ratio = cv2.calibrationMatrixValues(matrix, dimensions,
-                                                                      SENSOR[0], SENSOR[1])
+    # Detect Corners in each Image
+    for image in os.listdir(imgDirectory):
+        imgPath = os.path.join(imgDirectory, image)
+        if imageSize is None:
+            imageSize = getImageSize(imgPath)
+        detectedCorners.append(detectCorners(imgPath, patternSize))
 
-print("Focal Length: {:.4f} mm\n".format(focal))
+    # Confirm Sensor Size
+    sensor = sensorOptimizer(sensorWidth, sensorHeight, imageSize)
+
+    # Prepare Arrays for openCV Calculations
+    imagePoints, objectPoints = createCalibrationArrays(board, detectedCorners)
+
+    # Camera Matrix Calculations
+    initialMatrix = cv2.initCameraMatrix2D(objectPoints, imagePoints, imageSize)
+    error, matrix, distortion, rot, trans = cv2.calibrateCamera(objectPoints, imagePoints,
+                                                                imageSize, initialMatrix, None)
+
+    # FOV Calculation
+    fovH, fovV, focal, principal, ratio = cv2.calibrationMatrixValues(matrix, imageSize,
+                                                                      sensor[0], sensor[1])
+
+    return matrix, distortion, (fovH, fovV)
+
+
+### DEV CODE ###
+
+# # Test Calibration
+# iDir = filedialog.askdirectory(title="Select Directory")
+# print(cameraCalibration(iDir, 23.5, 15.6, 9, 7))
