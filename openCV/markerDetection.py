@@ -410,9 +410,8 @@ def organizeMarkerIDs(unsortedIDs):
 
     return sortedIDs
 
-def getMarkerColor(marker):
-    """Given an identified marker returns the RGB tuple from the color ID String."""
-    colorStr = marker[0]
+def getMarkerColor(colorStr):
+    """Given a color ID string returns the RGB tuple from the color ID String."""
     if colorStr == 'blue':
         return (255, 0, 0)
     elif colorStr == 'red':
@@ -439,15 +438,22 @@ def drawMarkerID(imagePath, markers):
         Annotated openCV image object.
     """
     img = cv2.imread(imagePath)
-    for marker in markers:
-        if marker is not None:
-            corners = np.array([marker[3][0], marker[3][1], marker[3][2], marker[3][3]], np.int32)
-            center = (int(marker[2][0]), int(marker[2][1]))
-            markerColor = getMarkerColor(marker)
+    colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta', False]
+    patterns = ['triangle', 'square', 'circle', 'slash', 'line', 'y', False]
+    font = cv2.FONT_HERSHEY_SIMPLEX
+
+    for c in colors:
+        markerColor = getMarkerColor(c)
+        for p in patterns:
+            if markers[c][p] is None:
+                continue
+            corners = np.array([markers[c][p][1][0], markers[c][p][1][1],
+                                markers[c][p][1][2], markers[c][p][1][3]])
+            center = (int(markers[c][p][0][0]), int(markers[c][p][0][1]))
             cv2.polylines(img, [corners], True, markerColor, 10)
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(img, "{}".format(marker[1]), center, font, 2, (0, 0, 0), 10)
-            cv2.putText(img, "{}".format(marker[1]), center, font, 2, markerColor, 4)
+            cv2.putText(img, "{}".format(p), center, font, 2, (0, 0, 0), 10)
+            cv2.putText(img, "{}".format(p), center, font, 2, markerColor, 4)
+
     return img
 
 ## DEV CODE ##
