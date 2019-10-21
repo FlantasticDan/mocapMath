@@ -135,7 +135,7 @@ def cameraCalibration(imgDirectory, sensorWidth, sensorHeight, patternColumns, p
     Returns:
         matrix: Camera Matrix
         distortion: Distortion Coefficents
-        fov: (horizontal, vertixal) field of view in degrees
+        fov: (horizontal, vertical) field of view in degrees
     """
     # Initialize Variables
     detectedCorners = []
@@ -169,9 +169,65 @@ def cameraCalibration(imgDirectory, sensorWidth, sensorHeight, patternColumns, p
 
     return matrix, distortion, (fovH, fovV)
 
+def exportCalibration(exportPath, fileName, matrix, distortion, fov):
+    '''
+    Save camera calibration for later reuse.
+
+    Args:
+        exportPath: File path to save export in.
+        fileName: Name of the file to be saved.
+        matrix: Camera Matrix
+        distortion: Distortion Coefficents
+        fov: (horizontal, vertical) field of view in degrees 
+
+    Returns:
+        File path to saved file.
+    '''
+    # Set Export File
+    export = os.path.join(exportPath, fileName)
+    export += ".npz"
+
+    np.savez(export, matrix=matrix, distortion=distortion, fov=fov)
+
+    return export
+
+def importCalibration(filePath):
+    """
+    Imports camera calibration data.
+
+    Args:
+        filePath: Path to previously exported save file.
+
+    Returns:
+        matrix: Camera Matrix
+        distortion: Distortion Coefficents
+        fov: (horizontal, vertical) field of view in degrees
+    """
+    data = np.load(filePath)
+    matrix = data['matrix']
+    distortion = data['distortion']
+    fov = data['fov']
+    data.close()
+
+    return matrix, distortion, fov
 
 ### DEV CODE ###
 
 # # Test Calibration
 # iDir = filedialog.askdirectory(title="Select Directory")
 # print(cameraCalibration(iDir, 23.5, 15.6, 9, 7))
+
+# # Test Export
+# iDir = filedialog.askdirectory(title="Select Directory")
+# m, d, f = cameraCalibration(iDir, 23.5, 15.6, 9, 7)
+# exportCalibration(iDir, "thisIsATest", m, d, f)
+# print(m)
+# print(d)
+# print(f)
+
+# # Test Import
+# fileLocal = filedialog.askopenfilename(title="Select the Calibration File")
+# m, d, f = importCalibration(fileLocal)
+# print(m)
+# print(d)
+# print(f)
