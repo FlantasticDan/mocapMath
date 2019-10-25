@@ -104,6 +104,13 @@ def checkColor(r, g, b):
             else:
                 return False
 
+# Determine Image Object Type
+def findImgObject(imgObject):
+    """Takes an image object (file path to image or image array) and return it in array form."""
+    if os.path.exists(imgObject):
+        return cv2.imread(imgObject)
+    return imgObject
+
 # Image Pre-Processing
 def imageProcessing(imgPath):
     """
@@ -116,7 +123,7 @@ def imageProcessing(imgPath):
         Array of contours, openCV image object.
     """
     # Pre-Processing
-    img = cv2.imread(imgPath, flags=cv2.IMREAD_COLOR)
+    img = findImgObject(imgPath)
     # img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, -100) # Add Contrast
 
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
