@@ -7,6 +7,7 @@ from tkinter import *
 from tkinter import filedialog
 
 master = Tk()
+master.title("Object Point Exporter")
 
 # Global Variables
 ROWS = 1
