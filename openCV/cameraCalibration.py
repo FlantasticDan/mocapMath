@@ -214,13 +214,61 @@ def importCalibration(filePath):
 ## Solve PnP ##
 
 def importMarkerPlacement(filepath):
-    """Returns a list of marker identifiers and thier corresponsing world space placements from a filepath."""
+    """Returns list of marker identifiers & corresponsing world space placement from a filepath."""
     markerPlacement = []
     with open(filepath, 'r') as data:
         for line in data:
             split = line[:-1].split(" ")
-            markerPlacement.append((split[0], split[1], (float(split[2]), float(split[3]), float(split[4]))))
+            markerPlacement.append((split[0], split[1],
+                                    (float(split[2]), float(split[3]), float(split[4]))))
     return markerPlacement # (color, shape, (x, y, z))
+
+def correlatePlacementWithDetection(placement, detection):
+    """
+    Prepares supplied marker placement data and detected marker data for camera solve.
+
+    Args:
+        placement: Marker placement list.
+        detection: Marker detection dictionary.
+
+    Returns:
+        imagePoints: Numpy array of 2D image points.
+        objectPoints: Numpy array of corresponding 3D coordinates.
+    """
+    imgPts = []
+    objPts = []
+
+    # Loop Through Marker Placements
+    for marker in placement:
+        if detection[marker[0]][marker[1]] is None:
+            continue
+        imgPts.append(detection[marker[0]][marker[1]][0])
+        objPts.append(marker[2])
+
+    # Convert to Numpy Arrays
+    imagePoints = np.array(imgPts)
+    objectPoints = np.array(objPts)
+
+    return imagePoints, objectPoints
+
+def solveCamera(cameraMatrix, distortion, imagePoints, objectPoints):
+    """
+    Solves for camera position and rotation in world space.
+
+    Args:
+        cameraMatrix: Camera Matrix
+        distortion: Distortion Coefficents
+        imagePoints: Numpy array of 2D image points.
+        objectPoints: Numpy array of corresponding 3D coordinates.
+
+    Returns:
+        position: Camera's position vector.
+        rotation: Camera's position vector.
+    """
+    _, rotation, position, inliers = cv2.solvePnPRansac(objectPoints, imagePoints, 
+                                                        cameraMatrix, distortion)
+
+    return position, rotation
 
 ### DEV CODE ###
 
