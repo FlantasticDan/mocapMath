@@ -211,6 +211,17 @@ def importCalibration(filePath):
 
     return matrix, distortion, fov
 
+## Solve PnP ##
+
+def importMarkerPlacement(filepath):
+    """Returns a list of marker identifiers and thier corresponsing world space placements from a filepath."""
+    markerPlacement = []
+    with open(filepath, 'r') as data:
+        for line in data:
+            split = line[:-1].split(" ")
+            markerPlacement.append((split[0], split[1], (float(split[2]), float(split[3]), float(split[4]))))
+    return markerPlacement # (color, shape, (x, y, z))
+
 ### DEV CODE ###
 
 # # Test Calibration
@@ -231,3 +242,4 @@ def importCalibration(filePath):
 # print(m)
 # print(d)
 # print(f)
+# print(importMarkerPlacement(fileLocal))
