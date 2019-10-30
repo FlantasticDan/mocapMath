@@ -1,5 +1,6 @@
 import tkinter as tk
 import os
+import sys
 import csv
 import cv2
 from markerDetection import markerID, drawMarkerID
@@ -92,7 +93,6 @@ class debugGUI:
 
     def selectImage(self):
         self.imgPath = tk.filedialog.askopenfilename(title="Select an Image...")
-        print(os.path.basename(self.imgPath))
         self.imgNameLabel['text'] = os.path.basename(self.imgPath)
 
     def exportImage(self):
@@ -122,12 +122,11 @@ class debugGUI:
 
         infoMessage = "POSITION ({}, {}, {})\nROTATION ({}, {}, {})".format(self.camPosition[0],
                                                                             self.camPosition[1],
-                                                                            self.camPosition[1],
+                                                                            self.camPosition[2],
                                                                             self.camRotation[0],
                                                                             self.camRotation[1],
                                                                             self.camRotation[2])
-
-        tk.messagebox.showinfo(title='Camera Solve Data', message=infoMessage)
+        print(infoMessage)
 
     def exportCalibrationUI(self):
         destination = tk.filedialog.asksaveasfilename(title="Save Calibration As...", 
@@ -194,10 +193,10 @@ class debugGUI:
         calSettings.wait_window()
 
         imgDir = tk.filedialog.askdirectory(title="Select Directory of Camera Calibration Images")
-        self.matrix, self.distortion, self.fov = cameraCalibration(imgDir, self.sensorx.get(),
-                                                                   self.sensory.get(),
-                                                                   self.patternColumns.get(),
-                                                                   self.patternRows.get())
+        self.matrix, self.distortion, self.fov = cameraCalibration(imgDir, float(self.sensorx.get()),
+                                                                   float(self.sensory.get()),
+                                                                   int(self.patColumns.get()),
+                                                                   int(self.patRows.get()))
 
         if self.matrix is not None:
             self.calibrationLabel['text'] = "Camera Calibrated"
