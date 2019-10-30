@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import filedialog
 import cv2
 import numpy as np
+import transforms3d.euler as euler
 
 # Configure Tkinter
 root = tk.Tk()
@@ -257,11 +258,15 @@ def solveCamera(cameraMatrix, distortion, imagePoints, objectPoints):
         objectPoints: Numpy array of corresponding 3D coordinates.
 
     Returns:
-        position: Camera's position vector.
-        rotation: Camera's position vector.
+        position: Camera's world translation coordinates.
+        rotation: Camera's world rotation as Euler angles.
     """
-    _, rotation, position, inliers = cv2.solvePnPRansac(objectPoints, imagePoints, 
-                                                        cameraMatrix, distortion)
+    _, rotVector, transVector, inliers = cv2.solvePnPRansac(objectPoints, imagePoints,
+                                                            cameraMatrix, distortion)
+
+    rotMatrix = cv2.Rodrigues(rotVector)[0]
+    position = -1 * np.matrix(rotMatrix).T * np.matrix(transVector)
+    rotation = euler.mat2euler(np.matrix(rotMatrix).T)
 
     return position, rotation
 
