@@ -169,13 +169,12 @@ def cameraCalibration(imgDirectory, sensorWidth, sensorHeight, patternColumns, p
 
     return matrix, distortion, (fovH, fovV)
 
-def exportCalibration(exportPath, fileName, matrix, distortion, fov):
+def exportCalibration(export, matrix, distortion, fov):
     '''
     Save camera calibration for later reuse.
 
     Args:
         exportPath: File path to save export in.
-        fileName: Name of the file to be saved.
         matrix: Camera Matrix
         distortion: Distortion Coefficents
         fov: (horizontal, vertical) field of view in degrees 
@@ -183,10 +182,6 @@ def exportCalibration(exportPath, fileName, matrix, distortion, fov):
     Returns:
         File path to saved file.
     '''
-    # Set Export File
-    export = os.path.join(exportPath, fileName)
-    export += ".npz"
-
     np.savez(export, matrix=matrix, distortion=distortion, fov=fov)
 
     return export
