@@ -111,6 +111,29 @@ def findImgObject(imgObject):
         return cv2.imread(imgObject)
     return imgObject
 
+def hsvAdjustment(image):
+    """Applys a threshold to saturation values and an alignment to hue values."""
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Threshold Saturation
+    saturation = hsv[:, :, 1] # [0, 255]
+    np.place(hsv[:, :, 1], saturation > 64, 255)
+
+    # Align Hue
+    hue = hsv[:, :, 0] # [0, 179]
+    np.place(hsv[:, :, 0], np.logical_or(hue < 15, hue > 173), 0) # red
+    np.place(hsv[:, :, 0], np.logical_and(hue >= 15, hue <= 45), 30) # yellow
+    np.place(hsv[:, :, 0], np.logical_and(hue > 45, hue <= 75), 60) # green
+    np.place(hsv[:, :, 0], np.logical_and(hue > 75, hue <= 105), 90) # cyan
+    np.place(hsv[:, :, 0], np.logical_and(hue > 105, hue <= 135), 120) # blue
+    np.place(hsv[:, :, 0], np.logical_and(hue > 135, hue <= 173), 150) # magenta
+
+    # Clamp Black
+    value = hsv[:, :, 2]
+    np.place(hsv[:, :, 2], value < 85, 0)
+
+    return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
 # Image Pre-Processing
 def imageProcessing(imgPath):
     """
@@ -124,12 +147,13 @@ def imageProcessing(imgPath):
     """
     # Pre-Processing
     img = findImgObject(imgPath)
-    # img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, -100) # Add Contrast
-
+    img = hsvAdjustment(img)
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     greyInv = cv2.bitwise_not(grey)
-    # _, mask = cv2.threshold(greyInv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    mask = cv2.adaptiveThreshold(greyInv, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    # Masking
+    _, mask = cv2.threshold(greyInv, 255, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # mask = cv2.adaptiveThreshold(greyInv, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 
     # Shape Detection
     contour = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
