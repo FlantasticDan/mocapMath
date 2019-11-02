@@ -1,0 +1,10 @@
+{
+    "python.linting.pylintEnabled": true,
+    "python.linting.pylintArgs": [
+        "--disable=F0401",
+        "--disable=C0103",
+        "--disable=E1101"
+    ],
+    "python.linting.enabled": true,
+    "python.pythonPath": "c:\\Users\\danch\\Documents\\GitHub\\mocapMath\\env\\Scripts\\python.exe",
+}
