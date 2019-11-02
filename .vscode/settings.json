@@ -6,5 +6,5 @@
         "--disable=E1101"
     ],
     "python.linting.enabled": true,
-    "python.pythonPath": "c:\\Users\\danch\\Documents\\GitHub\\mocapMath\\env\\Scripts\\python.exe",
+    "python.pythonPath": "C:\\Users\\danch\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
 }
