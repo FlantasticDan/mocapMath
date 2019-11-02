@@ -46,6 +46,10 @@ TRIANGLE = (importPattern("markerArrays\\triangle.txt"), "triangle")
 Y = (importPattern("markerArrays\\y.txt"), "y")
 PATTERNS = (CIRCLE, LINE, SLASH, SQUARE, TRIANGLE, Y)
 
+# Detections String ID Constants
+COLOR_ID = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta', False]
+PATTERN_ID = ['triangle', 'square', 'circle', 'slash', 'line', 'y', False]
+
 # Pattern Tester
 def checkPattern(mystery):
     """Checks an unknown array against known patterns, returns the matching pattern's identifier."""
@@ -107,8 +111,11 @@ def checkColor(r, g, b):
 # Determine Image Object Type
 def findImgObject(imgObject):
     """Takes an image object (file path to image or image array) and return it in array form."""
-    if os.path.exists(imgObject):
-        return cv2.imread(imgObject)
+    try:
+        if os.path.exists(imgObject):
+            return cv2.imread(imgObject)
+    except:
+        pass
     return imgObject
 
 def hsvAdjustment(image):
@@ -424,8 +431,8 @@ def markerID(imagePath):
 
 def createEmptyMarkerDictionary(empty=None):
     """Returns an empty marker dictionary of patterns sorted inside colors."""
-    colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta', False]
-    patterns = ['triangle', 'square', 'circle', 'slash', 'line', 'y', False]
+    colors = COLOR_ID
+    patterns = PATTERN_ID
 
     emptyDictionary = {}
 
