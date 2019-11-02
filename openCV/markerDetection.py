@@ -422,17 +422,23 @@ def markerID(imagePath):
         markerIDs.append(identifyMarker(marker))
     return organizeMarkerIDs(markerIDs)
 
-def organizeMarkerIDs(unsortedIDs):
-    """Returns an organized marker dictionary from Marker ID List."""
+def createEmptyMarkerDictionary(empty=None):
+    """Returns an empty marker dictionary of patterns sorted inside colors."""
     colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta', False]
     patterns = ['triangle', 'square', 'circle', 'slash', 'line', 'y', False]
 
-    sortedIDs = {}
+    emptyDictionary = {}
 
     for c in colors:
-        sortedIDs[c] = {}
+        emptyDictionary[c] = {}
         for p in patterns:
-            sortedIDs[c][p] = None
+            emptyDictionary[c][p] = empty
+
+    return emptyDictionary
+
+def organizeMarkerIDs(unsortedIDs):
+    """Returns an organized marker dictionary from Marker ID List."""
+    sortedIDs = createEmptyMarkerDictionary()
 
     for marker in unsortedIDs:
         if marker is None:
