@@ -74,6 +74,22 @@ def directoryToImgSequence(directoryPath):
         imgSequence.append(img)
     return imgSequence
 
+def trackerAnnotation(export, imgSequence, trackers):
+    """Exports an annotated, tracked image sequence."""
+    for i, image in enumerate(imgSequence):
+        for color in detect.COLOR_ID:
+            for pattern in detect.PATTERN_ID:
+                try: # Check for a detected center for each marker on each frame.
+                    trackerCenter = trackers[color][pattern][i]
+                    print("{} {} {} {}".format(i, color, pattern, trackerCenter))
+                except:
+                    continue
+                image = cv2.circle(image, (int(trackerCenter[0]), int(trackerCenter[1])),
+                                           15, detect.getMarkerColor(color), 3)
+        cv2.imwrite(os.path.join(export, "{:08d}.jpg".format(i)), image)
+
+
+
 
 # ## DEBUG CODE ##
 # import tkinter as tk
@@ -84,4 +100,7 @@ def directoryToImgSequence(directoryPath):
 
 # dirPath = filedialog.askdirectory(title='Select a Directory Containing an Image Sequence')
 # images = directoryToImgSequence(dirPath)
-# print(fixedUpdateTracking(images))
+# trackedData = fixedUpdateTracking(images)
+# raise Exception
+# exportPath = filedialog.askdirectory(title='Select a Directory to Export the Image Sequence')
+# trackerAnnotation(exportPath, images, trackedData)
